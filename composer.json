@@ -1,0 +1,24 @@
+{
+    "name": "skladx/skladx-woocommerce",
+    "description": "SkladX fulfilment integration for WooCommerce.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5 || ^11.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SkladX\\WooCommerce\\": "src/",
+            "SkladX\\WooCommerce\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

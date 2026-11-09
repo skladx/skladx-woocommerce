@@ -1,0 +1,593 @@
+# Copyright (C) 2026 SkladX
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: SkladX for WooCommerce 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/skladx/skladx-woocommerce/issues\n"
+"Last-Translator: SkladX\n"
+"Language-Team: Slovak\n"
+"Language: sk_SK\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-09T23:38:03+00:00\n"
+"PO-Revision-Date: 2026-11-10 00:40+0100\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: skladx-woocommerce\n"
+
+#. Plugin Name of the plugin
+#: skladx-woocommerce.php
+msgid "SkladX for WooCommerce"
+msgstr "SkladX pre WooCommerce"
+
+#. Plugin URI of the plugin
+#: skladx-woocommerce.php
+msgid "https://github.com/skladx/skladx-woocommerce"
+msgstr ""
+
+#. Description of the plugin
+#: skladx-woocommerce.php
+msgid "Connects WooCommerce with the SkladX fulfilment warehouse: exports orders, syncs products and stock, and receives order status and tracking updates via signed webhooks."
+msgstr "Prepojí WooCommerce s fulfillmentovým skladom SkladX: odosiela objednávky, synchronizuje produkty a zásoby a cez podpísané webhooky prijíma stavy objednávok a sledovanie zásielok."
+
+#. Author of the plugin
+#: skladx-woocommerce.php
+msgid "SkladX"
+msgstr ""
+
+#. Author URI of the plugin
+#: skladx-woocommerce.php
+msgid "https://github.com/skladx"
+msgstr ""
+
+#: skladx-woocommerce.php:54
+msgid "SkladX for WooCommerce requires WooCommerce to be installed and active."
+msgstr "SkladX pre WooCommerce vyžaduje nainštalovaný a aktívny WooCommerce."
+
+#. translators: %s: missing scopes
+#: src/Admin/Actions.php:65
+#, php-format
+msgid "Connected, but the API key is missing scopes: %s"
+msgstr "Pripojené, ale API kľúču chýbajú oprávnenia: %s"
+
+#: src/Admin/Actions.php:67
+msgid "Connection works."
+msgstr "Pripojenie funguje."
+
+#. translators: %s: error
+#: src/Admin/Actions.php:78
+#, php-format
+msgid "Connection failed: %s"
+msgstr "Pripojenie zlyhalo: %s"
+
+#: src/Admin/Actions.php:98
+msgid "SkladX did not return the webhook secret."
+msgstr "SkladX nevrátil podpisový kľúč webhooku."
+
+#. translators: %s: webhook id
+#: src/Admin/Actions.php:113
+#, php-format
+msgid "Webhook registered in SkladX (%s), signing secret saved."
+msgstr "Webhook je zaregistrovaný v SkladX (%s), podpisový kľúč je uložený."
+
+#. translators: %s: error
+#: src/Admin/Actions.php:116
+#, php-format
+msgid "Registering the webhook failed: %s"
+msgstr "Registrácia webhooku zlyhala: %s"
+
+#: src/Admin/Actions.php:126
+msgid "All products with a SKU are being sent to SkladX in the background."
+msgstr "Všetky produkty so SKU sa na pozadí odosielajú do SkladX."
+
+#. translators: %d: number of events
+#: src/Admin/Actions.php:136
+#, php-format
+msgid "%d missed event found."
+msgid_plural "%d missed events found."
+msgstr[0] "Nájdená %d zmeškaná udalosť."
+msgstr[1] "Nájdené %d zmeškané udalosti."
+msgstr[2] "Nájdených %d zmeškaných udalostí."
+
+#: src/Admin/Actions.php:145
+msgid "The order is being sent to SkladX."
+msgstr "Objednávka sa odosiela do SkladX."
+
+#: src/Admin/Actions.php:147
+msgid "The order is already in SkladX or queued."
+msgstr "Objednávka už je v SkladX alebo čaká vo fronte."
+
+#: src/Admin/Actions.php:159
+msgid "SkladX data refreshed."
+msgstr "Údaje zo SkladX sú aktualizované."
+
+#. translators: %s: error
+#: src/Admin/Actions.php:162
+#, php-format
+msgid "Refreshing from SkladX failed: %s"
+msgstr "Aktualizácia zo SkladX zlyhala: %s"
+
+#. translators: %s: user name
+#: src/Admin/Actions.php:173
+#, php-format
+msgid "Cancelled in WooCommerce by %s"
+msgstr "Stornoval vo WooCommerce používateľ %s"
+
+#: src/Admin/Actions.php:174
+#: src/Admin/Actions.php:176
+msgid "Order cancelled in SkladX."
+msgstr "Objednávka bola stornovaná v SkladX."
+
+#. translators: %s: error
+#: src/Admin/Actions.php:179
+#, php-format
+msgid "Cancelling in SkladX failed: %s"
+msgstr "Storno v SkladX zlyhalo: %s"
+
+#: src/Admin/Actions.php:187
+msgid "You are not allowed to do this."
+msgstr "Na túto akciu nemáte oprávnenie."
+
+#: src/Admin/Actions.php:199
+msgid "Order not found."
+msgstr "Objednávka sa nenašla."
+
+#: src/Admin/OrderMetaBox.php:48
+msgid "SkladX is not configured."
+msgstr "SkladX nie je nastavený."
+
+#: src/Admin/OrderMetaBox.php:60
+msgid "Queued for sending…"
+msgstr "Čaká na odoslanie…"
+
+#: src/Admin/OrderMetaBox.php:61
+msgid "Sending failed, will retry automatically."
+msgstr "Odoslanie zlyhalo, automaticky sa zopakuje."
+
+#: src/Admin/OrderMetaBox.php:62
+msgid "Sending failed."
+msgstr "Odoslanie zlyhalo."
+
+#: src/Admin/OrderMetaBox.php:65
+msgid "Not sent to SkladX yet."
+msgstr "Zatiaľ neodoslaná do SkladX."
+
+#: src/Admin/OrderMetaBox.php:74
+msgid "Resend to SkladX"
+msgstr "Odoslať do SkladX znova"
+
+#: src/Admin/OrderMetaBox.php:74
+msgid "Send to SkladX"
+msgstr "Odoslať do SkladX"
+
+#: src/Admin/OrderMetaBox.php:85
+msgid "Status"
+msgstr "Stav"
+
+#: src/Admin/OrderMetaBox.php:86
+msgid "Number"
+msgstr "Číslo"
+
+#: src/Admin/OrderMetaBox.php:87
+#: src/Admin/SettingsPage.php:421
+msgid "sandbox"
+msgstr "sandbox"
+
+#: src/Admin/OrderMetaBox.php:89
+msgid "Tracking"
+msgstr "Sledovanie"
+
+#: src/Admin/OrderMetaBox.php:92
+msgid "Last sync"
+msgstr "Posledná synchronizácia"
+
+#: src/Admin/OrderMetaBox.php:96
+msgid "Refresh"
+msgstr "Aktualizovať"
+
+#: src/Admin/OrderMetaBox.php:102
+msgid "Cancel this order in the SkladX warehouse?"
+msgstr "Stornovať túto objednávku v sklade SkladX?"
+
+#: src/Admin/OrderMetaBox.php:103
+msgid "Cancel in SkladX"
+msgstr "Stornovať v SkladX"
+
+#: src/Admin/ProductFields.php:31
+#: src/Admin/ProductFields.php:56
+msgid "EAN for SkladX"
+msgstr "EAN pre SkladX"
+
+#: src/Admin/ProductFields.php:33
+msgid "Barcode used by the SkladX warehouse. Leave empty to use the GTIN/EAN field."
+msgstr "Čiarový kód pre sklad SkladX. Ak je prázdny, použije sa pole GTIN/EAN."
+
+#: src/Admin/SettingsPage.php:58
+msgid "Connection"
+msgstr "Pripojenie"
+
+#: src/Admin/SettingsPage.php:59
+msgid "API key from the SkladX client portal (Integrations → API keys). Keys starting with skx_test_ work with the sandbox, skx_live_ with production."
+msgstr "API kľúč z klientskeho portálu SkladX (Integrácie → API kľúče). Kľúče skx_test_ pracujú so sandboxom, skx_live_ s produkciou."
+
+#: src/Admin/SettingsPage.php:64
+msgid "API base URL"
+msgstr "Základná URL API"
+
+#: src/Admin/SettingsPage.php:67
+msgid "Including /api/v1, without a trailing slash."
+msgstr "Vrátane /api/v1, bez lomky na konci."
+
+#: src/Admin/SettingsPage.php:74
+msgid "API key"
+msgstr "API kľúč"
+
+#: src/Admin/SettingsPage.php:75
+msgid "Needs scopes orders:read/write, products:write, events:read and webhooks:write (stock:read optional). Leave empty to keep the saved key."
+msgstr "Potrebné oprávnenia: orders:read/write, products:write, events:read a webhooks:write (stock:read voliteľne). Nechajte prázdne, ak chcete ponechať uložený kľúč."
+
+#: src/Admin/SettingsPage.php:86
+msgid "Webhook"
+msgstr "Webhook"
+
+#: src/Admin/SettingsPage.php:87
+msgid "SkladX pushes order status, tracking and stock changes to this shop. Register the endpoint automatically, or add it in the SkladX portal and paste the signing secret below."
+msgstr "SkladX posiela do obchodu zmeny stavov objednávok, sledovania a zásob. Endpoint zaregistrujte automaticky alebo ho pridajte v portáli SkladX a nižšie vložte podpisový kľúč."
+
+#: src/Admin/SettingsPage.php:93
+msgid "Webhook signing secret"
+msgstr "Podpisový kľúč webhooku"
+
+#: src/Admin/SettingsPage.php:94
+msgid "whsec_… — filled in automatically when the webhook is registered from here."
+msgstr "whsec_… — vyplní sa automaticky pri registrácii webhooku odtiaľto."
+
+#: src/Admin/SettingsPage.php:104
+msgid "Orders"
+msgstr "Objednávky"
+
+#: src/Admin/SettingsPage.php:109
+msgid "Send orders in status"
+msgstr "Odosielať objednávky v stave"
+
+#: src/Admin/SettingsPage.php:110
+msgid "An order is sent to SkladX once, when it reaches one of these statuses."
+msgstr "Objednávka sa odošle do SkladX raz, keď dosiahne niektorý z týchto stavov."
+
+#: src/Admin/SettingsPage.php:118
+msgid "Cash on delivery payment methods"
+msgstr "Platobné metódy na dobierku"
+
+#: src/Admin/SettingsPage.php:119
+msgid "Orders paid with these methods are sent with the order total as the COD amount."
+msgstr "Objednávky s týmito platbami sa odošlú so sumou objednávky ako dobierkou."
+
+#: src/Admin/SettingsPage.php:127
+msgid "Shipping methods → carriers"
+msgstr "Spôsoby dopravy → dopravcovia"
+
+#: src/Admin/SettingsPage.php:132
+msgid "Pickup point meta key"
+msgstr "Meta kľúč výdajného miesta"
+
+#: src/Admin/SettingsPage.php:133
+msgid "Order (or shipping line) meta field holding the pickup point id, e.g. from a Packeta widget."
+msgstr "Meta pole objednávky (alebo položky dopravy) s ID výdajného miesta, napr. z widgetu Packeta."
+
+#: src/Admin/SettingsPage.php:140
+msgid "SkladX status → WooCommerce status"
+msgstr "Stav SkladX → stav WooCommerce"
+
+#: src/Admin/SettingsPage.php:150
+msgid "Products & stock"
+msgstr "Produkty a zásoby"
+
+#: src/Admin/SettingsPage.php:155
+msgid "Product sync"
+msgstr "Synchronizácia produktov"
+
+#: src/Admin/SettingsPage.php:156
+msgid "Send products (SKU, name, EAN, weight, dimensions, price) to SkladX when they are saved."
+msgstr "Pri uložení odoslať produkt (SKU, názov, EAN, hmotnosť, rozmery, cenu) do SkladX."
+
+#: src/Admin/SettingsPage.php:162
+msgid "Stock sync"
+msgstr "Synchronizácia zásob"
+
+#: src/Admin/SettingsPage.php:163
+msgid "Set WooCommerce stock to the quantity available in the SkladX warehouse (SkladX is the source of truth). Only products with \"Manage stock\" enabled are updated."
+msgstr "Nastaviť zásobu vo WooCommerce podľa dostupného množstva v sklade SkladX (SkladX je zdroj pravdy). Aktualizujú sa len produkty so zapnutým \"Spravovať zásoby\"."
+
+#: src/Admin/SettingsPage.php:175
+msgid "Advanced"
+msgstr "Rozšírené"
+
+#: src/Admin/SettingsPage.php:180
+msgid "Debug log"
+msgstr "Ladiaci log"
+
+#. translators: %s: link to WooCommerce logs
+#: src/Admin/SettingsPage.php:183
+#, php-format
+msgid "Log every API call and webhook to WooCommerce → Status → <a href=\"%s\">Logs</a> (source \"skladx\"). API keys and secrets are always masked."
+msgstr "Zapisovať každé volanie API a webhook do WooCommerce → Stav → <a href=\"%s\">Logy</a> (zdroj \"skladx\"). API kľúče a tajné kľúče sú vždy maskované."
+
+#. translators: %s: masked secret
+#: src/Admin/SettingsPage.php:207
+#, php-format
+msgid "Saved: %s"
+msgstr "Uložené: %s"
+
+#: src/Admin/SettingsPage.php:209
+msgid "Remove"
+msgstr "Odstrániť"
+
+#: src/Admin/SettingsPage.php:254
+msgid "Locations not covered by your other zones"
+msgstr "Oblasti, ktoré nepokrývajú ostatné zóny"
+
+#: src/Admin/SettingsPage.php:280
+msgid "No shipping methods configured yet."
+msgstr "Zatiaľ nie sú nastavené žiadne spôsoby dopravy."
+
+#: src/Admin/SettingsPage.php:283
+msgid "Shipping method"
+msgstr "Spôsob dopravy"
+
+#: src/Admin/SettingsPage.php:283
+msgid "SkladX carrier"
+msgstr "Dopravca SkladX"
+
+#: src/Admin/SettingsPage.php:290
+msgid "— warehouse decides —"
+msgstr "— rozhodne sklad —"
+
+#: src/Admin/SettingsPage.php:301
+msgid "Sent as \"carrier\" with every order. For Packeta pickup points also set the pickup point meta key below."
+msgstr "Odosiela sa ako \"carrier\" s každou objednávkou. Pre výdajné miesta Packeta nastavte aj meta kľúč výdajného miesta nižšie."
+
+#: src/Admin/SettingsPage.php:338
+msgid "SkladX status"
+msgstr "Stav SkladX"
+
+#: src/Admin/SettingsPage.php:338
+msgid "Change WooCommerce order to"
+msgstr "Zmeniť objednávku WooCommerce na"
+
+#: src/Admin/SettingsPage.php:345
+msgid "— keep (order note only) —"
+msgstr "— ponechať (len poznámka) —"
+
+#: src/Admin/SettingsPage.php:355
+msgid "Every SkladX status change is added as an order note; mapped statuses also change the WooCommerce order status (which may send the usual customer emails)."
+msgstr "Každá zmena stavu v SkladX sa pridá ako poznámka k objednávke; namapované stavy zmenia aj stav objednávky vo WooCommerce (čo môže odoslať bežné e-maily zákazníkovi)."
+
+#: src/Admin/SettingsPage.php:382
+msgid "Draft"
+msgstr "Koncept"
+
+#: src/Admin/SettingsPage.php:383
+msgid "Received"
+msgstr "Prijatá"
+
+#: src/Admin/SettingsPage.php:384
+msgid "On hold"
+msgstr "Pozastavená"
+
+#: src/Admin/SettingsPage.php:385
+msgid "Awaiting stock"
+msgstr "Čaká na tovar"
+
+#: src/Admin/SettingsPage.php:386
+msgid "Ready for fulfilment"
+msgstr "Pripravená na expedíciu"
+
+#: src/Admin/SettingsPage.php:387
+msgid "Stock allocated"
+msgstr "Tovar rezervovaný"
+
+#: src/Admin/SettingsPage.php:388
+msgid "Picking"
+msgstr "Vychystáva sa"
+
+#: src/Admin/SettingsPage.php:389
+msgid "Picked"
+msgstr "Vychystaná"
+
+#: src/Admin/SettingsPage.php:390
+msgid "Packing"
+msgstr "Balí sa"
+
+#: src/Admin/SettingsPage.php:391
+msgid "Packed"
+msgstr "Zabalená"
+
+#: src/Admin/SettingsPage.php:392
+msgid "Label created"
+msgstr "Štítok vytvorený"
+
+#: src/Admin/SettingsPage.php:393
+msgid "Handed over to carrier"
+msgstr "Odovzdaná dopravcovi"
+
+#: src/Admin/SettingsPage.php:394
+msgid "In transit"
+msgstr "Na ceste"
+
+#: src/Admin/SettingsPage.php:395
+msgid "Out for delivery"
+msgstr "Doručuje sa"
+
+#: src/Admin/SettingsPage.php:396
+msgid "Delivered"
+msgstr "Doručená"
+
+#: src/Admin/SettingsPage.php:397
+msgid "Delivery failed"
+msgstr "Nedoručená"
+
+#: src/Admin/SettingsPage.php:398
+msgid "Returning"
+msgstr "Vracia sa"
+
+#: src/Admin/SettingsPage.php:399
+msgid "Returned"
+msgstr "Vrátená"
+
+#: src/Admin/SettingsPage.php:400
+msgid "Cancelled"
+msgstr "Stornovaná"
+
+#: src/Admin/SettingsPage.php:410
+msgid "Connection status"
+msgstr "Stav pripojenia"
+
+#. translators: 1: client name, 2: environment name, 3: sandbox/production
+#: src/Admin/SettingsPage.php:418
+#, php-format
+msgid "Connected to client %1$s, environment %2$s (%3$s)."
+msgstr "Pripojené ku klientovi %1$s, prostredie %2$s (%3$s)."
+
+#: src/Admin/SettingsPage.php:421
+msgid "production"
+msgstr "produkcia"
+
+#. translators: 1: scopes, 2: date
+#: src/Admin/SettingsPage.php:428
+#, php-format
+msgid "Scopes: %1$s · checked %2$s"
+msgstr "Oprávnenia: %1$s · overené %2$s"
+
+#: src/Admin/SettingsPage.php:434
+msgid "Not tested yet. Save the settings, then test the connection."
+msgstr "Zatiaľ neotestované. Uložte nastavenia a otestujte pripojenie."
+
+#: src/Admin/SettingsPage.php:436
+msgid "Test connection"
+msgstr "Otestovať pripojenie"
+
+#: src/Admin/SettingsPage.php:446
+msgid "Endpoint URL"
+msgstr "URL endpointu"
+
+#. translators: %s: comma separated event types
+#: src/Admin/SettingsPage.php:452
+#, php-format
+msgid "Events: %s"
+msgstr "Udalosti: %s"
+
+#. translators: %s: webhook id
+#: src/Admin/SettingsPage.php:459
+#, php-format
+msgid "Registered in SkladX as %s."
+msgstr "Zaregistrovaný v SkladX ako %s."
+
+#: src/Admin/SettingsPage.php:463
+msgid "Re-register webhook"
+msgstr "Znova zaregistrovať webhook"
+
+#: src/Admin/SettingsPage.php:463
+msgid "Register webhook in SkladX"
+msgstr "Zaregistrovať webhook v SkladX"
+
+#: src/Admin/SettingsPage.php:474
+msgid "Tools"
+msgstr "Nástroje"
+
+#: src/Admin/SettingsPage.php:476
+msgid "Sync all products"
+msgstr "Synchronizovať všetky produkty"
+
+#: src/Admin/SettingsPage.php:477
+msgid "Fetch missed events now"
+msgstr "Načítať zmeškané udalosti teraz"
+
+#. translators: 1: processed count, 2: ignored count, 3: failed count, 4: pending count
+#: src/Admin/SettingsPage.php:482
+#, php-format
+msgid "Received events (last 30 days): %1$d processed, %2$d ignored, %3$d failed, %4$d pending. Missed webhooks are fetched automatically every 10 minutes."
+msgstr "Prijaté udalosti (posledných 30 dní): %1$d spracovaných, %2$d ignorovaných, %3$d zlyhaných, %4$d čakajúcich. Zmeškané webhooky sa automaticky načítavajú každých 10 minút."
+
+#: src/Api/Client.php:121
+msgid "SkladX API URL or API key is not configured."
+msgstr "URL API alebo API kľúč SkladX nie sú nastavené."
+
+#: src/Plugin.php:73
+#: src/Plugin.php:97
+#: src/Plugin.php:101
+msgctxt "Order status"
+msgid "Shipped (SkladX)"
+msgstr "Odoslaná (SkladX)"
+
+#. translators: %s: number of orders
+#: src/Plugin.php:79
+#, php-format
+msgid "Shipped (SkladX) <span class=\"count\">(%s)</span>"
+msgid_plural "Shipped (SkladX) <span class=\"count\">(%s)</span>"
+msgstr[0] "Odoslaná (SkladX) <span class=\"count\">(%s)</span>"
+msgstr[1] "Odoslaná (SkladX) <span class=\"count\">(%s)</span>"
+msgstr[2] "Odoslaná (SkladX) <span class=\"count\">(%s)</span>"
+
+#: src/Plugin.php:132
+msgid "Settings"
+msgstr "Nastavenia"
+
+#. translators: 1: SkladX order number, 2: SkladX order id, 3: SkladX status label
+#: src/Sync/OrderExporter.php:103
+#, php-format
+msgid "Order sent to SkladX as %1$s (%2$s), status: %3$s."
+msgstr "Objednávka odoslaná do SkladX ako %1$s (%2$s), stav: %3$s."
+
+#. translators: 1: SkladX order number, 2: SkladX order id, 3: SkladX status label
+#: src/Sync/OrderExporter.php:182
+#, php-format
+msgid "Order already existed in SkladX as %1$s (%2$s), status: %3$s — linked."
+msgstr "Objednávka už v SkladX existovala ako %1$s (%2$s), stav: %3$s — prepojená."
+
+#. translators: %s: error message
+#: src/Sync/OrderExporter.php:208
+#, php-format
+msgid "Sending the order to SkladX failed: %s"
+msgstr "Odoslanie objednávky do SkladX zlyhalo: %s"
+
+#. translators: 1: order edit link, 2: order number, 3: error
+#: src/Sync/OrderExporter.php:216
+#, php-format
+msgid "Order <a href=\"%1$s\">#%2$s</a> could not be sent to SkladX: %3$s"
+msgstr "Objednávku <a href=\"%1$s\">#%2$s</a> sa nepodarilo odoslať do SkladX: %3$s"
+
+#. translators: 1: SkladX status label, 2: SkladX status code
+#: src/Sync/OrderUpdater.php:39
+#, php-format
+msgid "SkladX: order status is now \"%1$s\" (%2$s)."
+msgstr "SkladX: stav objednávky je teraz „%1$s“ (%2$s)."
+
+#. translators: %s: carrier tracking number
+#: src/Sync/OrderUpdater.php:54
+#, php-format
+msgid "Your order has been handed over to the carrier. Tracking number: %s"
+msgstr "Vaša objednávka bola odovzdaná dopravcovi. Číslo zásielky: %s"
+
+#. translators: %s: tracking URL
+#: src/Sync/OrderUpdater.php:60
+#, php-format
+msgid "Track your parcel: %s"
+msgstr "Sledovanie zásielky: %s"
+
+#. translators: 1: SKU, 2: error
+#: src/Sync/ProductSync.php:156
+#, php-format
+msgid "Product %1$s could not be synced to SkladX: %2$s"
+msgstr "Produkt %1$s sa nepodarilo synchronizovať do SkladX: %2$s"
+
+#: src/Sync/Tracking.php:75
+#: src/Sync/Tracking.php:105
+msgid "Shipment tracking"
+msgstr "Sledovanie zásielky"
+
+#: src/Sync/Tracking.php:76
+#: src/Sync/Tracking.php:100
+#: src/Sync/Tracking.php:105
+msgid "Tracking number:"
+msgstr "Číslo zásielky:"
