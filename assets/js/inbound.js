@@ -706,7 +706,8 @@
 
 		var hasReceived = receipt.totals && receipt.totals.received !== null && receipt.totals.received !== undefined;
 
-		if ( hasReceived ) {
+		/* The verdict (differences / all fine) only once the receipt is closed; while counting, just the numbers. */
+		if ( hasReceived && receipt.status === 'received' ) {
 			panel.appendChild(
 				el( 'div', { className: 'notice inline ' + ( receipt.has_differences ? 'notice-warning' : 'notice-success' ) }, [
 					el( 'p', { text: receipt.has_differences ? t.differencesFound : t.receivedOk } ),

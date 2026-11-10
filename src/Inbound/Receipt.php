@@ -78,7 +78,12 @@ final class Receipt {
 			}
 		}
 
-		$has_received = self::RECEIVED === $status || null !== $received;
+		/*
+		 * Received quantities only mean something once the warehouse has
+		 * started counting: SkladX reports 0 for every line of an announced
+		 * receipt, which must not read as "received 0, difference -20".
+		 */
+		$has_received = self::RECEIVED === $status || ( self::RECEIVING === $status && null !== $received );
 
 		return array(
 			'id'              => self::text( $raw['id'] ?? '' ),

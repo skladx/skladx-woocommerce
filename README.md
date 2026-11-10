@@ -170,6 +170,10 @@ Zmaže nastavenia `skladx_*`, tabuľku `wp_skladx_events` a naplánované akcie.
 
 ## Changelog
 
+### 0.3.1
+
+- Receipts: received quantities and differences are shown only once the warehouse starts counting; an announced receipt no longer claims the warehouse received 0 pieces. The "received with differences" notice appears only for received receipts.
+
 ### 0.3.0
 
 - New *WooCommerce → SkladX receipts* screen: list of inbound receipts (status badges, tracking link, received quantities and differences, status filter, cursor pagination) and an editor modelled on stock receipts in fulfilment portals — header (name, expected delivery date, carrier incl. *In person* / *Other*, tracking, reference, blind receipt), items with product autocomplete by name/SKU/EAN, batch and expiry (several lines per product), bulk paste with per-line errors, USB EAN scanning, attachments, label printing, *Send to warehouse*, cancel.

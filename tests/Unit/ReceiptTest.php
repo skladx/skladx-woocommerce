@@ -94,4 +94,21 @@ final class ReceiptTest extends TestCase {
 		$this->assertSame( $receipt, Receipt::from_event( $receipt ) );
 		$this->assertNull( Receipt::from_event( array( 'order' => array( 'id' => 'ord_1' ) ) ) );
 	}
+
+	public function test_announced_receipt_with_zero_counts_shows_no_differences(): void {
+		$receipt = Receipt::normalize(
+			array(
+				'id'     => 'inr_1',
+				'status' => 'announced',
+				'items'  => array(
+					array( 'sku' => 'A', 'quantity_expected' => 20, 'quantity_received' => 0 ),
+					array( 'sku' => 'B', 'quantity_expected' => 20, 'quantity_received' => 0 ),
+				),
+			)
+		);
+
+		$this->assertNull( $receipt['totals']['received'] );
+		$this->assertNull( $receipt['totals']['difference'] );
+		$this->assertFalse( $receipt['has_differences'] );
+	}
 }
