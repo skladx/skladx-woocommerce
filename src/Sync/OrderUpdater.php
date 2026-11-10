@@ -40,7 +40,8 @@ final class OrderUpdater {
 			$mapper = new StatusMapper( Settings::status_map() );
 
 			if ( $mapper->needs_change( $status, $order->get_status() ) ) {
-				$order->set_status( (string) $mapper->to_woocommerce( $status ), '' !== $note ? $note . ' ' : '' );
+				// WooCommerce joins the note and its own transition text with a space.
+				$order->set_status( (string) $mapper->to_woocommerce( $status ), $note );
 			} elseif ( '' !== $note ) {
 				$order->add_order_note( $note );
 			}

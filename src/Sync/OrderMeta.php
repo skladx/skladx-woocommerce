@@ -28,6 +28,8 @@ final class OrderMeta {
 	public const EXPORT_STATE      = '_skladx_export_state';
 	public const EXPORT_ERROR      = '_skladx_export_error';
 	public const EXPORT_REVISION   = '_skladx_export_revision';
+	public const ADDRESS_HASH      = '_skladx_address_hash';
+	public const ADDRESS_WARNED    = '_skladx_address_warned';
 
 	public static function is_exported( \WC_Order $order ): bool {
 		return '' !== (string) $order->get_meta( self::ID );
@@ -57,6 +59,10 @@ final class OrderMeta {
 			if ( null !== $value && '' !== $value ) {
 				$order->update_meta_data( $key, (string) $value );
 			}
+		}
+
+		if ( is_array( $remote['shipping_address'] ?? null ) ) {
+			$order->update_meta_data( self::ADDRESS_HASH, OrderPayloadBuilder::address_fingerprint( $remote['shipping_address'] ) );
 		}
 
 		if ( array_key_exists( 'test', $remote ) ) {

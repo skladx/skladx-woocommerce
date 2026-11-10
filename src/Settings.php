@@ -155,7 +155,49 @@ final class Settings {
 		return (string) wp_parse_url( home_url(), PHP_URL_HOST );
 	}
 
+	/**
+	 * Public URL of the webhook endpoint registered in SkladX.
+	 *
+	 * Built from the `home` option like every WordPress REST URL. Behind a
+	 * proxy, or when `home` is not the public address, use the
+	 * `skladx_webhook_url` filter; the settings page warns about a URL that
+	 * SkladX most likely cannot reach (see webhook_url_problem()).
+	 */
 	public static function webhook_url(): string {
-		return rest_url( 'skladx/v1/webhook' );
+		/**
+		 * Filters the webhook URL the plugin registers in SkladX.
+		 *
+		 * @param string $url Default: rest_url( 'skladx/v1/webhook' ).
+		 */
+		return (string) apply_filters( 'skladx_webhook_url', rest_url( 'skladx/v1/webhook' ) );
+	}
+
+	/**
+	 * Why SkladX probably cannot reach the webhook URL, or '' when it looks
+	 * fine. Pure PHP — unit tested.
+	 *
+	 * @param string $url     Webhook URL.
+	 * @param string $abspath WordPress root directory (ABSPATH).
+	 * @return string ''|not_absolute|not_https|filesystem_path
+	 */
+	public static function webhook_url_problem( string $url, string $abspath ): string {
+		$parts = parse_url( $url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- pure helper, no WordPress in unit tests.
+
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+			return 'not_absolute';
+		}
+
+		$root = rtrim( str_replace( '\\', '/', $abspath ), '/' );
+
+		// A `home` option saved with the server path (e.g. by an install run from the CLI).
+		if ( '' !== $root && str_contains( (string) ( $parts['path'] ?? '' ), $root . '/' ) ) {
+			return 'filesystem_path';
+		}
+
+		if ( 'https' !== strtolower( (string) ( $parts['scheme'] ?? '' ) ) ) {
+			return 'not_https';
+		}
+
+		return '';
 	}
 }

@@ -92,7 +92,7 @@ final class OrderExporter {
 		try {
 			$payload = self::payload( $order );
 		} catch ( MappingException $exception ) {
-			self::fail( $order, $exception->getMessage(), false );
+			self::fail( $order, $exception->localized_message(), false );
 
 			return;
 		}

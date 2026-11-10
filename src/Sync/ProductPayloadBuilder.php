@@ -76,7 +76,7 @@ final class ProductPayloadBuilder {
 		$sku = trim( (string) $product['sku'] );
 
 		if ( '' === $sku ) {
-			throw new MappingException( 'Product has no SKU.' );
+			throw new MappingException( 'Product has no SKU.', MappingException::PRODUCT_NO_SKU );
 		}
 
 		$dimensions = array_filter(

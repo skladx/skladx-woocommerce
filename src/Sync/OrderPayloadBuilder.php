@@ -123,7 +123,7 @@ final class OrderPayloadBuilder {
 			$sku = trim( (string) $item['sku'] );
 
 			if ( '' === $sku ) {
-				throw new MappingException( sprintf( 'Order line "%s" has no SKU.', $item['name'] ) );
+				throw new MappingException( sprintf( 'Order line "%s" has no SKU.', $item['name'] ), MappingException::NO_SKU, (string) $item['name'] );
 			}
 
 			$quantity = (int) $item['quantity'];
@@ -147,7 +147,7 @@ final class OrderPayloadBuilder {
 		}
 
 		if ( array() === $items ) {
-			throw new MappingException( 'Order has no products to ship.' );
+			throw new MappingException( 'Order has no products to ship.', MappingException::NO_ITEMS );
 		}
 
 		$items = array_values(
@@ -165,7 +165,7 @@ final class OrderPayloadBuilder {
 		$address = '' !== trim( (string) $order['shipping']['address_1'] ) ? $order['shipping'] : $order['billing'];
 
 		if ( '' === trim( (string) $address['address_1'] ) ) {
-			throw new MappingException( 'Order has no shipping address.' );
+			throw new MappingException( 'Order has no shipping address.', MappingException::NO_ADDRESS );
 		}
 
 		$shipping_address = array_filter(
@@ -237,6 +237,27 @@ final class OrderPayloadBuilder {
 			null !== $carrier && '' !== $carrier ? (string) $carrier : null,
 			null !== $pickup_point ? self::limit( $pickup_point, 64 ) : null,
 		);
+	}
+
+	/**
+	 * Fingerprint of a SkladX shipping address, to notice that the address in
+	 * WooCommerce changed after the export. Empty fields and key order do not
+	 * matter.
+	 *
+	 * @param array<string, mixed> $address `shipping_address` of the payload or of a SkladX order.
+	 */
+	public static function address_fingerprint( array $address ): string {
+		$fields = array();
+
+		foreach ( array( 'name', 'company', 'street', 'city', 'postal_code', 'country' ) as $key ) {
+			$value = is_scalar( $address[ $key ] ?? null ) ? trim( (string) $address[ $key ] ) : '';
+
+			if ( '' !== $value ) {
+				$fields[ $key ] = 'country' === $key ? strtoupper( $value ) : $value;
+			}
+		}
+
+		return md5( (string) json_encode( $fields ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- pure helper, no WordPress in unit tests.
 	}
 
 	private static function cents( float $amount ): int {

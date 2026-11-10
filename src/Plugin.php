@@ -12,6 +12,7 @@ use SkladX\WooCommerce\Admin\Notices;
 use SkladX\WooCommerce\Admin\OrderMetaBox;
 use SkladX\WooCommerce\Admin\ProductFields;
 use SkladX\WooCommerce\Admin\SettingsPage;
+use SkladX\WooCommerce\Sync\AddressWatcher;
 use SkladX\WooCommerce\Sync\OrderExporter;
 use SkladX\WooCommerce\Sync\ProductSync;
 use SkladX\WooCommerce\Sync\Tracking;
@@ -50,6 +51,7 @@ final class Plugin {
 		OrderExporter::register();
 		ProductSync::register();
 		Tracking::register();
+		AddressWatcher::register();
 		WebhookController::register();
 		EventProcessor::register();
 		EventPoller::register();

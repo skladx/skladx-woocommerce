@@ -142,7 +142,7 @@ final class ProductSync {
 			);
 			Logger::info( sprintf( 'Product %s synced (%s).', $payload['sku'], (string) ( $remote['id'] ?? '?' ) ) );
 		} catch ( MappingException | ApiException $exception ) {
-			$message = $exception instanceof ApiException ? $exception->summary() : $exception->getMessage();
+			$message = $exception instanceof ApiException ? $exception->summary() : $exception->localized_message();
 
 			self::write_meta( $product, array( self::ERROR_META => $message ) );
 			Logger::error( sprintf( 'Product %s sync failed: %s', $product->get_sku(), $message ) );

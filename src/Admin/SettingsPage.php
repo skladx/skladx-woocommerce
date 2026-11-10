@@ -446,6 +446,17 @@ final class SettingsPage extends \WC_Settings_Page {
 			<th scope="row" class="titledesc"><?php esc_html_e( 'Endpoint URL', 'skladx-woocommerce' ); ?></th>
 			<td class="forminp">
 				<input type="text" readonly class="regular-text code" style="min-width:480px" value="<?php echo esc_attr( Settings::webhook_url() ); ?>" onclick="this.select()" />
+				<?php
+				$problems = array(
+					'not_absolute'    => __( 'This is not an absolute URL, SkladX cannot deliver webhooks to it.', 'skladx-woocommerce' ),
+					'filesystem_path' => __( 'The URL contains the server path of WordPress: the site address (option "home") is wrong. Fix the site address or set the URL with the skladx_webhook_url filter, then re-register the webhook.', 'skladx-woocommerce' ),
+					'not_https'       => __( 'The URL does not use HTTPS, SkladX may refuse it and the signed payloads travel unencrypted.', 'skladx-woocommerce' ),
+				);
+				$problem  = Settings::webhook_url_problem( Settings::webhook_url(), ABSPATH );
+				?>
+				<?php if ( isset( $problems[ $problem ] ) ) : ?>
+					<p><span class="dashicons dashicons-warning" style="color:#d63638"></span> <?php echo esc_html( $problems[ $problem ] ); ?></p>
+				<?php endif; ?>
 				<p class="description">
 					<?php
 					/* translators: %s: comma separated event types */

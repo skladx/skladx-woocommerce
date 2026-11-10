@@ -42,7 +42,7 @@ Requirements: WordPress 6.4+, WooCommerce 8.2+, PHP 8.1+. Compatible with HPOS (
 
 The `Idempotency-Key` is `wc:<host>:order:<id>`; after a rejected attempt (4xx) a revision suffix `:r<n>` is added so the corrected order can be sent again. Network errors, 429 and 5xx are retried after 1, 5, 15, 60, 180 and 360 minutes; validation errors (422) stop, are written to the order note and the SkladX box, and show an admin notice. If SkladX already has the reference and it belongs to this order (lost response), the plugin links it instead of failing.
 
-Filters: `skladx_order_payload`, `skladx_product_payload`, `skladx_tracking_url`, `skladx_find_order_by_reference` (for sequential order number plugins).
+Filters: `skladx_order_payload`, `skladx_product_payload`, `skladx_tracking_url`, `skladx_find_order_by_reference` (for sequential order number plugins), `skladx_webhook_url` (public webhook URL behind a proxy).
 
 ### Webhook
 
@@ -66,6 +66,7 @@ Deleting the plugin removes all `skladx_*` options, the `wp_skladx_events` table
 - **Orders stay "Queued":** Action Scheduler runs on WP-Cron. Check *WooCommerce → Status → Scheduled Actions* (group `skladx`); on low-traffic sites use a real cron (`wp action-scheduler run`).
 - **422 on export:** the message in the SkladX box says which field (unknown SKU — sync products first; invalid pickup point; missing address). Fix it and click *Resend to SkladX*.
 - **Webhooks not arriving:** check *Webhooks → deliveries* in the SkladX portal. `401 invalid_signature` = wrong secret (re-register) or server clock off by more than 5 minutes. The shop must be reachable from SkladX over HTTPS with a valid certificate. Missed events are still picked up by polling.
+- **Endpoint URL shows a server path** (`https://shop.test/Users/…/wp-json/…`): the site address (`home`/`siteurl` options) was saved wrongly, e.g. by an install run from the command line. Fix it (`wp search-replace` or *Settings → General*), then re-register the webhook. The settings page warns about such URLs.
 - **Local development with Laravel Herd/Valet (`*.test`):** WordPress does not trust the local CA. Use a mu-plugin that adds the Herd CA (`~/Library/Application Support/Herd/config/valet/CA/LaravelValetCASelfSigned.pem`) via the `http_request_args` filter only for `*.test` hosts and only when `WP_ENVIRONMENT_TYPE` is `local`. Never disable SSL verification.
 
 ## Development
@@ -117,11 +118,25 @@ Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Eve
 - **422 pri odoslaní** – v boxe SkladX pri objednávke je presná chyba (neznáme SKU → najprv synchronizujte produkty; neplatné výdajné miesto; chýbajúca adresa). Po oprave kliknite *Odoslať do SkladX znova*.
 - **Objednávka visí vo fronte** – skontrolujte *WooCommerce → Stav → Naplánované akcie* (skupina `skladx`), na málo navštevovaných weboch nastavte skutočný cron.
 - **Webhooky nechodia** – v portáli SkladX pozrite doručenia webhooku; `401` = zlý kľúč (zaregistrujte znova) alebo posunutý čas servera. Obchod musí byť dostupný cez HTTPS s platným certifikátom; zmeškané udalosti dobehne polling.
+- **URL webhooku obsahuje cestu na serveri** (`https://obchod.test/Users/…/wp-json/…`) – adresa webu (voľby `home`/`siteurl`) je uložená nesprávne. Opravte ju a webhook zaregistrujte znova; stránka nastavení na takúto URL upozorní.
 - **Lokálny vývoj (Herd, `*.test`)** – pridajte mu-plugin, ktorý pre hostiteľov `*.test` v lokálnom prostredí pridá certifikát Herd CA cez filter `http_request_args`. Overovanie SSL nikdy nevypínajte.
 
 ### Odinštalovanie
 
 Zmaže nastavenia `skladx_*`, tabuľku `wp_skladx_events` a naplánované akcie. Meta údaje objednávok (`_skladx_*`) zostávajú.
+
+## Changelog
+
+### 0.1.1
+
+- Settings page warns when the webhook URL is not absolute, not HTTPS, or contains the server path of WordPress (wrong `home` option); new `skladx_webhook_url` filter.
+- Export errors before the API call (line without SKU, missing address) are translated and tell the admin how to fix them.
+- Editing the shipping address of an order already in SkladX adds a warning notice and order note (the SkladX API does not take over address changes).
+- No double space in the order note when a SkladX status changes the WooCommerce status.
+
+### 0.1.0
+
+- First release.
 
 ## License
 

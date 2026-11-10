@@ -190,8 +190,32 @@ final class OrderPayloadBuilderTest extends TestCase {
 		$snapshot['shipping']['address_1'] = '';
 		$snapshot['billing']['address_1']  = '';
 
-		$this->expectException( MappingException::class );
+		try {
+			OrderPayloadBuilder::build( $snapshot, $this->config() );
+			$this->fail( 'MappingException expected.' );
+		} catch ( MappingException $exception ) {
+			$this->assertSame( MappingException::NO_ADDRESS, $exception->reason );
+		}
+	}
 
-		OrderPayloadBuilder::build( $snapshot, $this->config() );
+	public function test_a_line_without_sku_names_the_line_for_the_admin_message(): void {
+		try {
+			OrderPayloadBuilder::build(
+				$this->snapshot( array( 'items' => array( array( 'product_id' => 3, 'sku' => ' ', 'name' => 'Darčeková taška', 'quantity' => 1, 'total' => 1.5 ) ) ) ),
+				$this->config()
+			);
+			$this->fail( 'MappingException expected.' );
+		} catch ( MappingException $exception ) {
+			$this->assertSame( MappingException::NO_SKU, $exception->reason );
+			$this->assertSame( 'Darčeková taška', $exception->subject );
+		}
+	}
+
+	public function test_address_fingerprint_ignores_empty_fields_key_order_and_country_case(): void {
+		$sent = array( 'name' => 'Jana Testová', 'street' => 'Obchodná 12', 'city' => 'Bratislava', 'postal_code' => '811 06', 'country' => 'SK' );
+		$back = array( 'country' => 'sk', 'city' => 'Bratislava', 'company' => null, 'postal_code' => '811 06', 'street' => 'Obchodná 12 ', 'name' => 'Jana Testová' );
+
+		$this->assertSame( OrderPayloadBuilder::address_fingerprint( $sent ), OrderPayloadBuilder::address_fingerprint( $back ) );
+		$this->assertNotSame( OrderPayloadBuilder::address_fingerprint( $sent ), OrderPayloadBuilder::address_fingerprint( array( 'street' => 'Nová 99' ) + $sent ) );
 	}
 }
