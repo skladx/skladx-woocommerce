@@ -34,6 +34,7 @@ final class Actions {
 		'skladx_order_send'      => 'order_send',
 		'skladx_order_refresh'   => 'order_refresh',
 		'skladx_order_cancel'    => 'order_cancel',
+		'skladx_product_resync'  => 'product_resync',
 	);
 
 	public static function register(): void {
@@ -152,6 +153,33 @@ final class Actions {
 		Notices::add( __( 'All products with a SKU are being sent to SkladX in the background.', 'skladx-woocommerce' ), 'success' );
 
 		self::back_to_settings();
+	}
+
+	/**
+	 * "Retry sync" of one product: sends it now even when the payload did not
+	 * change (e.g. after a SKU conflict was resolved in SkladX).
+	 */
+	public static function product_resync(): void {
+		self::guard( 'skladx_product_resync' );
+
+		$product_id = absint( $_GET['product_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- checked in guard().
+		$product    = $product_id ? wc_get_product( $product_id ) : null;
+
+		if ( ! $product instanceof \WC_Product ) {
+			wp_die( esc_html__( 'Product not found.', 'skladx-woocommerce' ), 404 );
+		}
+
+		ProductSync::sync( $product_id, false, true );
+
+		if ( '' === (string) get_post_meta( $product_id, ProductSync::ERROR_META, true ) ) {
+			/* translators: %s: SKU */
+			Notices::add( sprintf( __( 'Product %s was sent to SkladX.', 'skladx-woocommerce' ), esc_html( (string) $product->get_sku() ) ), 'success' );
+		}
+
+		$edit = (string) get_edit_post_link( $product->get_parent_id() ? $product->get_parent_id() : $product_id, 'raw' );
+
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : ( '' !== $edit ? $edit : admin_url( 'edit.php?post_type=product' ) ) );
+		exit;
 	}
 
 	public static function pull_stock(): void {

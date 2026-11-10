@@ -14,7 +14,7 @@ namespace SkladX\WooCommerce\Sync;
  *
  * @phpstan-type Address array{first_name: string, last_name: string, company: string, address_1: string, address_2: string, city: string, postcode: string, country: string, phone: string}
  * @phpstan-type Snapshot array{id: int, number: string, currency: string, total: float, payment_method: string, customer_note: string, email: string, phone: string, shipping: Address, billing: Address, items: list<array{product_id: int, sku: string, name: string, quantity: int, total: float}>, shipping_lines: list<array{method_id: string, instance_id: string, meta: array<string, string>}>, meta: array<string, string>}
- * @phpstan-type Config array{carrier_map: array<string, string>, cod_gateways: list<string>, pickup_point_meta_key: string, site: string, default_country: string}
+ * @phpstan-type Config array{carrier_map: array<string, string>, cod_gateways: list<string>, pickup_point_meta_key: string, site: string, site_key?: string, default_country: string}
  */
 final class OrderPayloadBuilder {
 
@@ -111,13 +111,14 @@ final class OrderPayloadBuilder {
 	 * Builds the `POST /orders` payload.
 	 *
 	 * @param array<string, mixed> $order  Snapshot from snapshot().
-	 * @param array<string, mixed> $config Carrier map, COD gateways, pickup point key, site host, default country.
+	 * @param array<string, mixed> $config Carrier map, COD gateways, pickup point key, site host, site key (external ids), default country.
 	 * @return array<string, mixed>
 	 *
 	 * @throws MappingException When the order cannot be exported (no items, missing SKU, no address).
 	 */
 	public static function build( array $order, array $config ): array {
-		$items = array();
+		$items    = array();
+		$site_key = (string) ( $config['site_key'] ?? '' );
 
 		foreach ( $order['items'] as $item ) {
 			$sku = trim( (string) $item['sku'] );
@@ -139,10 +140,11 @@ final class OrderPayloadBuilder {
 			}
 
 			$items[ $sku ] = array(
-				'sku'        => $sku,
-				'name'       => mb_substr( (string) $item['name'], 0, 255 ),
-				'quantity'   => $quantity,
-				'line_total' => (float) $item['total'],
+				'sku'         => $sku,
+				'external_id' => ExternalId::format( $site_key, (int) ( $item['product_id'] ?? 0 ) ),
+				'name'        => mb_substr( (string) $item['name'], 0, 255 ),
+				'quantity'    => $quantity,
+				'line_total'  => (float) $item['total'],
 			);
 		}
 
@@ -152,11 +154,15 @@ final class OrderPayloadBuilder {
 
 		$items = array_values(
 			array_map(
-				static fn ( array $item ): array => array(
-					'sku'              => $item['sku'],
-					'name'             => $item['name'],
-					'quantity'         => $item['quantity'],
-					'unit_price_cents' => self::cents( $item['line_total'] / $item['quantity'] ),
+				static fn ( array $item ): array => array_filter(
+					array(
+						'sku'              => $item['sku'],
+						'external_id'      => '' !== $item['external_id'] ? $item['external_id'] : null,
+						'name'             => $item['name'],
+						'quantity'         => $item['quantity'],
+						'unit_price_cents' => self::cents( $item['line_total'] / $item['quantity'] ),
+					),
+					static fn ( $value ): bool => null !== $value
 				),
 				$items
 			)

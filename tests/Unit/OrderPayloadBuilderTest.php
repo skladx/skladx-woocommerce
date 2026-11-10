@@ -63,6 +63,7 @@ final class OrderPayloadBuilderTest extends TestCase {
 			'cod_gateways'          => array( 'cod' ),
 			'pickup_point_meta_key' => '_skladx_pickup_point_id',
 			'site'                  => 'shop.example',
+			'site_key'              => 'shop.example',
 			'default_country'       => 'SK',
 		);
 	}
@@ -73,8 +74,8 @@ final class OrderPayloadBuilderTest extends TestCase {
 		$this->assertSame( '16', $payload['reference'] );
 		$this->assertSame(
 			array(
-				array( 'sku' => 'KOL-300', 'name' => 'Kolagén', 'quantity' => 2, 'unit_price_cents' => 2490 ),
-				array( 'sku' => 'SHK-700', 'name' => 'Šejker', 'quantity' => 1, 'unit_price_cents' => 750 ),
+				array( 'sku' => 'KOL-300', 'external_id' => 'wc:shop.example:12', 'name' => 'Kolagén', 'quantity' => 2, 'unit_price_cents' => 2490 ),
+				array( 'sku' => 'SHK-700', 'external_id' => 'wc:shop.example:14', 'name' => 'Šejker', 'quantity' => 1, 'unit_price_cents' => 750 ),
 			),
 			$payload['items']
 		);
@@ -152,7 +153,7 @@ final class OrderPayloadBuilderTest extends TestCase {
 			$this->config()
 		);
 
-		$this->assertSame( array( array( 'sku' => 'A', 'name' => 'A', 'quantity' => 3, 'unit_price_cents' => 800 ) ), $payload['items'] );
+		$this->assertSame( array( array( 'sku' => 'A', 'external_id' => 'wc:shop.example:1', 'name' => 'A', 'quantity' => 3, 'unit_price_cents' => 800 ) ), $payload['items'] );
 	}
 
 	public function test_uses_the_billing_address_when_there_is_no_shipping_address(): void {
@@ -217,5 +218,23 @@ final class OrderPayloadBuilderTest extends TestCase {
 
 		$this->assertSame( OrderPayloadBuilder::address_fingerprint( $sent ), OrderPayloadBuilder::address_fingerprint( $back ) );
 		$this->assertNotSame( OrderPayloadBuilder::address_fingerprint( $sent ), OrderPayloadBuilder::address_fingerprint( array( 'street' => 'Nová 99' ) + $sent ) );
+	}
+
+	public function test_items_carry_the_external_id_of_the_variation_or_product(): void {
+		$payload = OrderPayloadBuilder::build(
+			$this->snapshot(
+				array(
+					'items' => array(
+						array( 'product_id' => 57, 'sku' => 'TRI-M', 'name' => 'Tričko – M', 'quantity' => 1, 'total' => 12.0 ),
+						array( 'product_id' => 0, 'sku' => 'GONE', 'name' => 'Zmazaný produkt', 'quantity' => 1, 'total' => 3.0 ),
+					),
+				)
+			),
+			$this->config()
+		);
+
+		$this->assertSame( 'wc:shop.example:57', $payload['items'][0]['external_id'] );
+		$this->assertSame( 'TRI-M', $payload['items'][0]['sku'], 'The SKU is still sent.' );
+		$this->assertArrayNotHasKey( 'external_id', $payload['items'][1], 'No product id, no external id.' );
 	}
 }

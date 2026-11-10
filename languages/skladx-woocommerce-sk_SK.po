@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: SkladX for WooCommerce 0.3.0\n"
+"Project-Id-Version: SkladX for WooCommerce 0.4.0\n"
 "Report-Msgid-Bugs-To: https://github.com/skladx/skladx-woocommerce/issues\n"
 "Last-Translator: SkladX\n"
 "Language-Team: Slovak\n"
@@ -1542,3 +1542,69 @@ msgstr "Prijaté"
 #: src/Inbound/AdminPage.php:454
 msgid "Received on"
 msgstr "Prijatá"
+
+#: src/Sync/SkuConflict.php:133
+msgid "The SKU already belongs to another SkladX product."
+msgstr "SKU už patrí inému produktu v SkladX."
+
+#: src/Sync/SkuConflict.php:135
+msgid "Change the SKU here or in SkladX, then save the product again or click \"Retry sync\"."
+msgstr "Zmeňte SKU tu alebo v SkladX a potom produkt znova uložte alebo kliknite na „Synchronizovať znova“."
+
+#. translators: 1: SKU, 2: product name in SkladX, 3: its SKU, 4: its SkladX id
+#: src/Sync/SkuConflict.php:138
+#, php-format
+msgid "SKU %1$s already belongs to another SkladX product: %2$s (SKU %3$s, ID %4$s)."
+msgstr "SKU %1$s už patrí inému produktu v SkladX: %2$s (SKU %3$s, ID %4$s)."
+
+#. translators: 1: WooCommerce product id, 2: site key
+#: src/Sync/SkuConflict.php:141
+#, php-format
+msgid "That product is linked to WooCommerce product #%1$d (%2$s)."
+msgstr "Ten produkt je prepojený s produktom WooCommerce č. %1$d (%2$s)."
+
+#. translators: %s: external id
+#: src/Sync/SkuConflict.php:144
+#, php-format
+msgid "That product is linked to %s."
+msgstr "Ten produkt je prepojený s %s."
+
+#. translators: 1: SKU in SkladX, 2: SkladX id
+#: src/Sync/SkuConflict.php:147
+#, php-format
+msgid "This product stays in SkladX under SKU %1$s (ID %2$s)."
+msgstr "Tento produkt zostáva v SkladX pod SKU %1$s (ID %2$s)."
+
+#: src/Admin/ProductStatus.php:54
+msgid "SkladX: this product could not be synced."
+msgstr "SkladX: tento produkt sa nepodarilo synchronizovať."
+
+#: src/Admin/ProductStatus.php:62
+msgid "Retry sync"
+msgstr "Synchronizovať znova"
+
+#: src/Admin/ProductStatus.php:111
+msgid "SkladX: error"
+msgstr "SkladX: chyba"
+
+#: src/Admin/ProductStatus.php:121
+msgid "Synced to SkladX"
+msgstr "Synchronizované do SkladX"
+
+#: src/Admin/ProductStatus.php:121
+msgid "OK"
+msgstr "OK"
+
+#: src/Admin/ProductStatus.php:123
+msgid "Not synced to SkladX yet (products without SKU are skipped)"
+msgstr "Zatiaľ nesynchronizované do SkladX (produkty bez SKU sa preskakujú)"
+
+#: src/Admin/Actions.php:169
+msgid "Product not found."
+msgstr "Produkt sa nenašiel."
+
+#. translators: %s: SKU
+#: src/Admin/Actions.php:176
+#, php-format
+msgid "Product %s was sent to SkladX."
+msgstr "Produkt %s bol odoslaný do SkladX."

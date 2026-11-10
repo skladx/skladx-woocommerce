@@ -1,8 +1,9 @@
 <?php
 /**
- * Uninstall: removes plugin options, the event inbox table and scheduled
- * actions. Order and product meta (SkladX ids, tracking numbers) are kept on
- * purpose — they are part of the order history.
+ * Uninstall: removes plugin options (except the site key of product external
+ * ids), the event inbox table and scheduled actions. Order and product meta
+ * (SkladX ids, tracking numbers) are kept on purpose — they are part of the
+ * order history.
  *
  * @package SkladX\WooCommerce
  */
@@ -14,7 +15,10 @@ global $wpdb;
 $skladx_options = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( 'skladx_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 foreach ( $skladx_options as $skladx_option ) {
-	delete_option( $skladx_option );
+	// The site key is part of the product external ids in SkladX; a reinstall must reuse it.
+	if ( 'skladx_site_key' !== $skladx_option ) {
+		delete_option( $skladx_option );
+	}
 }
 
 // Cached pickup point searches.

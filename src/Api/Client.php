@@ -20,13 +20,23 @@ final class Client {
 
 	private const TIMEOUT = 20;
 
+	/**
+	 * @param string $base_url API base URL including `/api/v1`.
+	 * @param string $api_key  API key.
+	 * @param int    $timeout  HTTP timeout in seconds.
+	 */
 	public function __construct(
 		private readonly string $base_url,
-		private readonly string $api_key
+		private readonly string $api_key,
+		private readonly int $timeout = self::TIMEOUT
 	) {}
 
-	public static function from_settings(): self {
-		return new self( Settings::api_base_url(), Settings::api_key() );
+	/**
+	 * @param int|null $timeout HTTP timeout in seconds (null = default 20 s;
+	 *                          short for calls made while an admin waits).
+	 */
+	public static function from_settings( ?int $timeout = null ): self {
+		return new self( Settings::api_base_url(), Settings::api_key(), $timeout ?? self::TIMEOUT );
 	}
 
 	/**
@@ -71,7 +81,8 @@ final class Client {
 	}
 
 	/**
-	 * Create or update a product by SKU.
+	 * Create or update a product (matched by `external_id`, then by SKU).
+	 * A SKU owned by another product answers `409 sku_conflict`.
 	 *
 	 * @param array<string, mixed> $payload Product payload.
 	 * @return array<string, mixed>
@@ -306,7 +317,7 @@ final class Client {
 
 		$args = array(
 			'method'  => $method,
-			'timeout' => self::TIMEOUT,
+			'timeout' => max( 1, $this->timeout ),
 			'headers' => $headers,
 		);
 

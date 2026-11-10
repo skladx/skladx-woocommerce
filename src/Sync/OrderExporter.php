@@ -138,6 +138,7 @@ final class OrderExporter {
 				'cod_gateways'          => Settings::cod_gateways(),
 				'pickup_point_meta_key' => Settings::pickup_point_meta_key(),
 				'site'                  => Settings::site_host(),
+				'site_key'              => Settings::site_key(),
 				'default_country'       => (string) WC()->countries->get_base_country(),
 			)
 		);

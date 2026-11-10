@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: SkladX for WooCommerce 0.3.0\n"
+"Project-Id-Version: SkladX for WooCommerce 0.4.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/skladx-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1539,4 +1539,70 @@ msgstr ""
 #: src/Sync/Tracking.php:107
 #: src/Sync/Tracking.php:112
 msgid "Tracking number:"
+msgstr ""
+
+#: src/Sync/SkuConflict.php:133
+msgid "The SKU already belongs to another SkladX product."
+msgstr ""
+
+#: src/Sync/SkuConflict.php:135
+msgid "Change the SKU here or in SkladX, then save the product again or click \"Retry sync\"."
+msgstr ""
+
+#. translators: 1: SKU, 2: product name in SkladX, 3: its SKU, 4: its SkladX id
+#: src/Sync/SkuConflict.php:138
+#, php-format
+msgid "SKU %1$s already belongs to another SkladX product: %2$s (SKU %3$s, ID %4$s)."
+msgstr ""
+
+#. translators: 1: WooCommerce product id, 2: site key
+#: src/Sync/SkuConflict.php:141
+#, php-format
+msgid "That product is linked to WooCommerce product #%1$d (%2$s)."
+msgstr ""
+
+#. translators: %s: external id
+#: src/Sync/SkuConflict.php:144
+#, php-format
+msgid "That product is linked to %s."
+msgstr ""
+
+#. translators: 1: SKU in SkladX, 2: SkladX id
+#: src/Sync/SkuConflict.php:147
+#, php-format
+msgid "This product stays in SkladX under SKU %1$s (ID %2$s)."
+msgstr ""
+
+#: src/Admin/ProductStatus.php:54
+msgid "SkladX: this product could not be synced."
+msgstr ""
+
+#: src/Admin/ProductStatus.php:62
+msgid "Retry sync"
+msgstr ""
+
+#: src/Admin/ProductStatus.php:111
+msgid "SkladX: error"
+msgstr ""
+
+#: src/Admin/ProductStatus.php:121
+msgid "Synced to SkladX"
+msgstr ""
+
+#: src/Admin/ProductStatus.php:121
+msgid "OK"
+msgstr ""
+
+#: src/Admin/ProductStatus.php:123
+msgid "Not synced to SkladX yet (products without SKU are skipped)"
+msgstr ""
+
+#: src/Admin/Actions.php:169
+msgid "Product not found."
+msgstr ""
+
+#. translators: %s: SKU
+#: src/Admin/Actions.php:176
+#, php-format
+msgid "Product %s was sent to SkladX."
 msgstr ""

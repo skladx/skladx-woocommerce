@@ -4,7 +4,7 @@ Connects a WooCommerce shop with the **SkladX** fulfilment warehouse:
 
 - sends orders to SkladX when they reach a chosen status (Action Scheduler queue, idempotent, retries with backoff),
 - pickup point picker at checkout (classic checkout and Checkout block) for Packeta and other pickup carriers, with points from SkladX,
-- syncs products (SKU, name, EAN, weight, dimensions, price) and optionally takes stock levels from SkladX,
+- sends products to SkladX right after they are saved (SKU, stable `external_id`, name, EAN, weight, dimensions, price, images; queue fallback with retries), handles SKU renames and SKU conflicts, and optionally takes stock levels from SkladX,
 - receives order status and tracking updates via signed webhooks (HMAC-SHA256) and a polling fallback,
 - shows a SkladX box on the order screen (status, number, tracking with a *Track shipment* button, pickup point, last sync, Send/Resend, Refresh, Cancel in SkladX),
 - **receipts** (*WooCommerce → SkladX receipts*): announce goods you send to the warehouse — header, items with batch and expiry, bulk paste, EAN scanning, attachments, label for the parcel, received quantities and differences.
@@ -36,17 +36,26 @@ Requirements: WordPress 6.4+, WooCommerce 8.2+, PHP 8.1+. Compatible with HPOS (
 | Pickup point meta key | Order or shipping-line meta holding the pickup point id (default `_skladx_pickup_point_id`). The picker writes here; if another pickup point plugin is used, set the key it writes. SkladX validates the point (must exist, be active and accept COD). |
 | Packeta widget API key | Optional. When set, Packeta methods open the official Packeta widget (`widget.packeta.com`) instead of the built-in picker. The chosen point is still verified with SkladX. The key is public (used in the browser). |
 | SkladX status → WooCommerce status | Every SkladX status change becomes an order note; mapped ones also change the WC status. Defaults: `handed_over` → *Shipped (SkladX)* (custom status `wc-skladx-shipped`, counts as paid), `delivered` → *Completed*, `cancelled` → *Cancelled*. |
-| Product sync | On product save (and *Sync all products*) → `POST /products` upsert by SKU. Products without SKU are skipped. Saves that do not change the payload (e.g. stock only) are not sent. |
+| Product sync | On product save (and *Sync all products*) → `POST /products` upsert by `external_id`, then by SKU — see [Product sync](#product-sync). Products without SKU are skipped until a SKU is added. Saves that do not change the payload (e.g. stock only) are not sent. |
 | Stock sync | Off by default. When on, SkladX is the source of truth: `stock.changed` / `product.*` events set WC stock to SkladX `available` (on hand − reserved) for products with *Manage stock*. Units of WC orders not yet in SkladX (e.g. bank transfer on hold) stay deducted. Turning it on, or *Take over stock from SkladX now*, pulls all levels via `GET /stock`. Older events never overwrite newer ones (event ids are time-ordered). |
 | Debug log | WooCommerce → Status → Logs, source `skladx`. Secrets are masked (`skx_*`, `whsec_*`, `Bearer …`). Errors are always logged. |
 
 ### Order payload
 
-`reference` = WC order number, items by SKU (duplicate SKUs merged, `unit_price_cents` incl. tax), shipping address (billing address as fallback), `carrier`, `pickup_point_id`, `cod_cents`, `total_cents`, `currency`, `customer_email`, `customer_phone`, `note` (customer note) and `metadata: {wc_order_id, wc_order_number, site}`.
+`reference` = WC order number, items by SKU with the product's `external_id` (variation id for variations; SkladX looks the product up by `external_id` first, then by SKU; duplicate SKUs merged, `unit_price_cents` incl. tax), shipping address (billing address as fallback), `carrier`, `pickup_point_id`, `cod_cents`, `total_cents`, `currency`, `customer_email`, `customer_phone`, `note` (customer note) and `metadata: {wc_order_id, wc_order_number, site}`.
 
 The `Idempotency-Key` is `wc:<host>:order:<id>`; after a rejected attempt (4xx) a revision suffix `:r<n>` is added so the corrected order can be sent again. Network errors, 429 and 5xx are retried after 1, 5, 15, 60, 180 and 360 minutes; validation errors (422) stop, are written to the order note and the SkladX box, and show an admin notice. If SkladX already has the reference and it belongs to this order (lost response), the plugin links it instead of failing.
 
 Filters: `skladx_order_payload`, `skladx_product_payload`, `skladx_tracking_url`, `skladx_find_order_by_reference` (for sequential order number plugins), `skladx_webhook_url` (public webhook URL behind a proxy).
+
+### Product sync
+
+- **Stable `external_id`.** Every product is sent with `external_id` = `wc:{site}:{id}` — the product id for simple products, the variation id for variations (e.g. `wc:shop.example:57`). `{site}` is the *site key*: the lowercase host of the site address (`home_url()`, `www.` kept) saved once in the `skladx_site_key` option and never recomputed, so moving the shop to another domain keeps the link to SkladX. Uninstalling the plugin keeps this option too. SkladX finds the product by `external_id` first and by SKU second (products synced before 0.4.0 are linked on their next sync).
+- **SKU rename.** Changing the SKU of a product SkladX already knows (same `external_id`) renames the SKU in SkladX — no duplicate product.
+- **SKU conflict.** If the new SKU already belongs to another SkladX product, SkladX answers `409 sku_conflict`. The plugin stores the error on the product (which SkladX product owns the SKU: name, SKU, id and its link), shows it as an error on the product edit screen and as a *SkladX: error* badge in the product list, and does **not** retry: the same payload is not sent again until the product is saved with a change or you click *Retry sync* in the notice. Validation errors (422) behave the same way.
+- **Immediate sync with queue fallback.** Saved products are collected during the request — wp-admin (also a new product published for the first time, or a SKU added later), variations (including *Save changes* in the variations panel), REST API (`woocommerce_rest_insert_product_object`), CSV import and trash/restore (sent as `archived`) — and pushed at the end of the request with a 5 s timeout, once per product. Saving a variable product checks its variations. At most 10 changed products are pushed per request, the rest goes to the Action Scheduler queue (`skladx_sync_product`). Network errors, 429 and 5xx are retried after 1, 5, 15, 60, 180 and 360 minutes. Unchanged payloads are skipped, but a SKU change or a missing `external_id` link always sends.
+- **Images.** `image_url` is the absolute URL of the main image (relative URLs are resolved against the site address, `http://` becomes `https://` on HTTPS sites, other schemes are skipped); `images` has up to 10 gallery image URLs without the main image (variations without their own gallery use the parent's).
+- Errors stay in the product meta `_skladx_product_error` (plus `_skladx_product_error_code`) until the next successful sync and are also shown as one-time admin notices (except on the product edit screen, which shows them itself).
 
 ### Pickup point picker
 
@@ -86,12 +95,13 @@ Handled events: `order.status_changed`, `order.shipped`, `order.delivered`, `ord
 
 ### Uninstall
 
-Deleting the plugin removes all `skladx_*` options, the `wp_skladx_events` table and scheduled actions. Order and product meta (`_skladx_*`) is kept as part of the order history.
+Deleting the plugin removes all `skladx_*` options except `skladx_site_key` (part of the product external ids in SkladX), the `wp_skladx_events` table and scheduled actions. Order and product meta (`_skladx_*`) is kept as part of the order history.
 
 ## Troubleshooting
 
 - **Test connection → `invalid_api_key` / `insufficient_scope`:** issue a new key with the scopes listed above.
 - **Orders stay "Queued":** Action Scheduler runs on WP-Cron. Check *WooCommerce → Status → Scheduled Actions* (group `skladx`); on low-traffic sites use a real cron (`wp action-scheduler run`).
+- **Product shows *SkladX: error* / "SKU … already belongs to another SkladX product":** another SkladX product (possibly an older one created by SKU, or another shop product) owns the SKU. Change the SKU in WooCommerce, or rename/archive the other product in SkladX and click *Retry sync* on the product screen.
 - **422 on export:** the message in the SkladX box says which field (unknown SKU — sync products first; invalid pickup point; missing address). Fix it and click *Resend to SkladX*.
 - **Webhooks not arriving:** check *Webhooks → deliveries* in the SkladX portal. `401 invalid_signature` = wrong secret (re-register) or server clock off by more than 5 minutes. The shop must be reachable from SkladX over HTTPS with a valid certificate. Missed events are still picked up by polling.
 - **Endpoint URL shows a server path** (`https://shop.test/Users/…/wp-json/…`): the site address (`home`/`siteurl` options) was saved wrongly, e.g. by an install run from the command line. Fix it (`wp search-replace` or *Settings → General*), then re-register the webhook. The settings page warns about such URLs.
@@ -101,7 +111,7 @@ Deleting the plugin removes all `skladx_*` options, the `wp_skladx_events` table
 
 ```bash
 composer install      # dev only: PHPUnit
-composer test         # unit tests: signature, payload mapping, status mapping, redaction, pickup points, receipts (payload, validation, bulk paste, webhook handling)
+composer test         # unit tests: signature, payload mapping (incl. external_id, images), SKU conflict messages, status mapping, redaction, pickup points, receipts (payload, validation, bulk paste, webhook handling)
 wp i18n make-pot . languages/skladx-woocommerce.pot --exclude=vendor,tests --skip-js
 wp i18n update-po languages/skladx-woocommerce.pot languages/skladx-woocommerce-sk_SK.po
 msgfmt -o languages/skladx-woocommerce-sk_SK.mo languages/skladx-woocommerce-sk_SK.po
@@ -136,9 +146,18 @@ Plugin prepojí WooCommerce so skladom **SkladX**: odosiela objednávky, synchro
 - **Meta kľúč výdajného miesta** – meta pole s ID výdajného miesta (predvolene `_skladx_pickup_point_id`); sem zapisuje výber výdajného miesta, SkladX miesto overí.
 - **API kľúč widgetu Packeta** – nepovinné; ak je vyplnený, pri Packete sa otvorí oficiálny widget Packeta.
 - **Stav SkladX → stav WooCommerce** – každá zmena je poznámka k objednávke, namapované stavy zmenia aj stav objednávky. Predvolene: `handed_over` → *Odoslaná (SkladX)*, `delivered` → *Vybavená*, `cancelled` → *Zrušená*.
-- **Synchronizácia produktov** – pri uložení produktu a tlačidlom *Synchronizovať všetky produkty* (upsert podľa SKU; EAN z poľa *EAN pre SkladX* alebo GTIN).
+- **Synchronizácia produktov** – hneď pri uložení produktu a tlačidlom *Synchronizovať všetky produkty* (upsert podľa `external_id`, potom podľa SKU; EAN z poľa *EAN pre SkladX* alebo GTIN), pozri nižšie.
 - **Synchronizácia zásob** – predvolene vypnutá; po zapnutí je zdrojom pravdy SkladX (dostupné = na sklade − rezervované). Pri zapnutí a tlačidlom *Prevziať zásoby zo SkladX teraz* sa prevezmú všetky stavy. Kusy z objednávok, ktoré ešte nie sú v SkladX, zostanú odpočítané.
 - **Ladiaci log** – WooCommerce → Stav → Logy, zdroj `skladx`, tajné údaje maskované.
+
+### Synchronizácia produktov
+
+- **Stabilné `external_id`.** Každý produkt sa posiela s `external_id` = `wc:{site}:{id}` – pri jednoduchom produkte ID produktu, pri variácii ID variácie (napr. `wc:obchod.sk:57`). `{site}` je kľúč webu: hostiteľ adresy webu malými písmenami (`www.` zostáva), uložený raz do voľby `skladx_site_key` a už sa neprepočítava – po zmene domény obchodu zostane prepojenie so SkladX zachované (voľba zostane aj po odinštalovaní). SkladX hľadá produkt najprv podľa `external_id`, potom podľa SKU (produkty synchronizované pred verziou 0.4.0 sa prepoja pri ďalšej synchronizácii).
+- **Premenovanie SKU.** Zmena SKU produktu, ktorý SkladX už pozná (rovnaké `external_id`), premenuje SKU v SkladX – nevznikne duplicitný produkt.
+- **Konflikt SKU.** Ak nové SKU už patrí inému produktu v SkladX, SkladX odpovie `409 sku_conflict`. Plugin uloží chybu k produktu (ktorý produkt v SkladX má toto SKU: názov, SKU, ID a jeho prepojenie), zobrazí ju ako chybu pri úprave produktu a ako štítok *SkladX: chyba* v zozname produktov a automaticky to **neskúša znova** – rovnaké údaje sa znova neodošlú, kým produkt neuložíte so zmenou alebo nekliknete na *Synchronizovať znova*. Rovnako sa správajú chyby validácie (422).
+- **Okamžitá synchronizácia so zálohou cez frontu.** Uložené produkty – v administrácii (aj nový produkt pri prvom zverejnení alebo SKU doplnené neskôr), variácie (aj *Uložiť zmeny* vo variáciách), REST API, import CSV, kôš/obnovenie (posiela sa ako `archived`) – sa odošlú na konci požiadavky s timeoutom 5 s, každý raz. Pri uložení variabilného produktu sa skontrolujú jeho variácie. Naraz sa odošle najviac 10 zmenených produktov, ostatné idú do fronty Action Scheduler. Sieťové chyby, 429 a 5xx sa opakujú po 1, 5, 15, 60, 180 a 360 minútach. Nezmenené údaje sa neposielajú, zmena SKU alebo chýbajúce prepojenie `external_id` sa odošle vždy.
+- **Obrázky.** `image_url` je absolútna URL hlavného obrázka (na HTTPS webe vždy `https://`), `images` obsahuje najviac 10 obrázkov galérie bez hlavného obrázka.
+- Položky objednávky nesú `external_id` produktu alebo variácie (popri SKU).
 
 ### Príjemky (WooCommerce → Príjemky SkladX)
 
@@ -158,6 +177,7 @@ Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Eve
 
 ### Riešenie problémov
 
+- **Produkt má *SkladX: chyba* / „SKU … už patrí inému produktu v SkladX“** – SKU má iný produkt v SkladX. Zmeňte SKU vo WooCommerce alebo upravte/archivujte druhý produkt v SkladX a pri produkte kliknite na *Synchronizovať znova*.
 - **422 pri odoslaní** – v boxe SkladX pri objednávke je presná chyba (neznáme SKU → najprv synchronizujte produkty; neplatné výdajné miesto; chýbajúca adresa). Po oprave kliknite *Odoslať do SkladX znova*.
 - **Objednávka visí vo fronte** – skontrolujte *WooCommerce → Stav → Naplánované akcie* (skupina `skladx`), na málo navštevovaných weboch nastavte skutočný cron.
 - **Webhooky nechodia** – v portáli SkladX pozrite doručenia webhooku; `401` = zlý kľúč (zaregistrujte znova) alebo posunutý čas servera. Obchod musí byť dostupný cez HTTPS s platným certifikátom; zmeškané udalosti dobehne polling.
@@ -166,9 +186,17 @@ Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Eve
 
 ### Odinštalovanie
 
-Zmaže nastavenia `skladx_*`, tabuľku `wp_skladx_events` a naplánované akcie. Meta údaje objednávok (`_skladx_*`) zostávajú.
+Zmaže nastavenia `skladx_*` okrem `skladx_site_key` (súčasť `external_id` produktov v SkladX), tabuľku `wp_skladx_events` a naplánované akcie. Meta údaje objednávok a produktov (`_skladx_*`) zostávajú.
 
 ## Changelog
+
+### 0.4.0
+
+- Products are sent with a stable `external_id` (`wc:{site}:{product or variation id}`); the site key is stored once in `skladx_site_key`, so a domain change does not break the link. Order items carry the same `external_id` next to the SKU.
+- Immediate product sync: saves from wp-admin (incl. first publish and a SKU added later), variations (incl. the ajax variations panel), REST API, CSV import and trash/restore are pushed at the end of the request (5 s timeout, once per product, max 10 per request); retryable failures (network, 429, 5xx) fall back to the Action Scheduler queue with backoff. A SKU change or a missing `external_id` link always forces a send.
+- SKU rename in SkladX for known products; `409 sku_conflict` is stored on the product with the SkladX product that owns the SKU, shown on the product edit screen and in a new *SkladX* column of the product list, and never retried automatically — the same payload is not resent until the product changes or *Retry sync* is clicked. Same for 422 validation errors.
+- Images: absolute (and on HTTPS sites https) `image_url`, plus `images` with up to 10 gallery images.
+- Unit tests for external ids, images, order item external ids and SKU conflict handling; Slovak translation of the new texts.
 
 ### 0.3.1
 

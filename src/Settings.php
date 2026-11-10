@@ -7,6 +7,8 @@
 
 namespace SkladX\WooCommerce;
 
+use SkladX\WooCommerce\Sync\ExternalId;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -17,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
 final class Settings {
 
 	public const PREFIX = 'skladx_';
+
+	/** Option holding the stable site key of product external ids (see site_key()). */
+	public const SITE_KEY_OPTION = 'skladx_site_key';
 
 	/** Carrier codes accepted by SkladX. */
 	public const CARRIERS = array( 'packeta', 'dpd_sk', 'gls_sk', 'sps', 'posta_sk', 'balikovo' );
@@ -212,6 +217,29 @@ final class Settings {
 	 */
 	public static function site_host(): string {
 		return (string) wp_parse_url( home_url(), PHP_URL_HOST );
+	}
+
+	/**
+	 * Stable key of this shop in product external ids (`wc:{site_key}:{id}`).
+	 *
+	 * Set once — to the lowercase host of home_url() — and kept forever in the
+	 * `skladx_site_key` option, so SkladX still recognises the products after
+	 * the shop moves to another domain. Uninstalling the plugin keeps it too.
+	 */
+	public static function site_key(): string {
+		$key = trim( (string) get_option( self::SITE_KEY_OPTION, '' ) );
+
+		if ( '' !== $key ) {
+			return $key;
+		}
+
+		$key = ExternalId::site_key_from_url( home_url() );
+		$key = '' !== $key ? $key : 'site-' . get_current_blog_id();
+
+		// add_option() never overwrites a key another request stored meanwhile.
+		add_option( self::SITE_KEY_OPTION, $key, '', true );
+
+		return trim( (string) get_option( self::SITE_KEY_OPTION, $key ) ) ?: $key;
 	}
 
 	/**

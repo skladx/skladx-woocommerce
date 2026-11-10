@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Installer {
 
-	public const DB_VERSION        = '1';
+	public const DB_VERSION        = '2';
 	public const DB_VERSION_OPTION = 'skladx_db_version';
 
 	/** Action Scheduler hooks owned by the plugin. */
@@ -32,6 +32,7 @@ final class Installer {
 
 	public static function activate(): void {
 		self::install_schema();
+		Settings::site_key();
 	}
 
 	public static function deactivate(): void {
@@ -47,6 +48,8 @@ final class Installer {
 	 */
 	public static function maybe_upgrade(): void {
 		if ( get_option( self::DB_VERSION_OPTION ) !== self::DB_VERSION ) {
+			// Fix the site key of product external ids before the domain can change.
+			Settings::site_key();
 			self::install_schema();
 		}
 	}

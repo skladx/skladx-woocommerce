@@ -11,6 +11,7 @@ use SkladX\WooCommerce\Admin\Actions;
 use SkladX\WooCommerce\Admin\Notices;
 use SkladX\WooCommerce\Admin\OrderMetaBox;
 use SkladX\WooCommerce\Admin\ProductFields;
+use SkladX\WooCommerce\Admin\ProductStatus;
 use SkladX\WooCommerce\Admin\SettingsPage;
 use SkladX\WooCommerce\Inbound\Receipts;
 use SkladX\WooCommerce\Pickup\Checkout as PickupCheckout;
@@ -65,6 +66,7 @@ final class Plugin {
 			Actions::register();
 			OrderMetaBox::register();
 			ProductFields::register();
+			ProductStatus::register();
 		}
 	}
 

@@ -16,7 +16,14 @@ use SkladX\WooCommerce\Support\Logger;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Product save → Action Scheduler → `POST /products` (upsert by SKU).
+ * Product save → `POST /products` (upsert by `external_id`, then by SKU).
+ *
+ * Saves (wp-admin, variations, REST API, CSV import, trash) collect product
+ * ids; at `shutdown` each changed product is pushed right away with a short
+ * timeout (at most IMMEDIATE_LIMIT per request, the rest is queued). Network
+ * errors, 429 and 5xx are retried in Action Scheduler with backoff. Final
+ * errors (409 SKU conflict, 422 validation) are stored on the product and not
+ * resent until its payload changes or the admin clicks "Retry sync".
  * "Sync all products" walks the catalogue in batches of BATCH_SIZE.
  */
 final class ProductSync {
@@ -27,10 +34,27 @@ final class ProductSync {
 	public const GROUP      = 'skladx';
 	public const BATCH_SIZE = 25;
 
-	public const LAST_SYNC_META = '_skladx_product_synced_at';
-	public const ERROR_META     = '_skladx_product_error';
-	public const HASH_META      = '_skladx_product_hash';
-	public const STOCK_EVENT    = '_skladx_stock_event_id';
+	/** Products pushed synchronously per request (the rest goes to the queue). */
+	public const IMMEDIATE_LIMIT = 10;
+
+	/** HTTP timeout (seconds) of a synchronous push. */
+	public const IMMEDIATE_TIMEOUT = 5;
+
+	/** Seconds before retry n+1 of a retryable failure. */
+	public const BACKOFF = array( 60, 300, 900, 3600, 10800, 21600 );
+
+	/** API error codes that fail again with the same payload (not resent until it changes). */
+	public const FINAL_ERROR_CODES = array( 'sku_conflict', 'validation_failed' );
+
+	public const LAST_SYNC_META   = '_skladx_product_synced_at';
+	public const ERROR_META       = '_skladx_product_error';
+	public const ERROR_CODE_META  = '_skladx_product_error_code';
+	public const FAILED_HASH_META = '_skladx_product_failed_hash';
+	public const HASH_META        = '_skladx_product_hash';
+	public const SKU_META         = '_skladx_product_sku';
+	public const EXTERNAL_ID_META = '_skladx_external_id';
+	public const REMOTE_ID_META   = '_skladx_product_id';
+	public const STOCK_EVENT      = '_skladx_stock_event_id';
 
 	/** True while SkladX data is being written into WooCommerce (prevents echo syncs). */
 	private static bool $applying_remote = false;
@@ -38,12 +62,26 @@ final class ProductSync {
 	/** @var array<int, int>|null Product id => units held by orders not in SkladX yet (per request). */
 	private static ?array $held = null;
 
+	/** @var array<int, true> Products saved in this request, pushed at shutdown. */
+	private static array $pending = array();
+
+	/** Whether the shutdown push already ran (later saves go to the queue). */
+	private static bool $flushed = false;
+
 	public static function register(): void {
 		add_action( 'woocommerce_new_product', array( self::class, 'on_product_saved' ), 20, 1 );
 		add_action( 'woocommerce_update_product', array( self::class, 'on_product_saved' ), 20, 1 );
 		add_action( 'woocommerce_new_product_variation', array( self::class, 'on_product_saved' ), 20, 1 );
 		add_action( 'woocommerce_update_product_variation', array( self::class, 'on_product_saved' ), 20, 1 );
-		add_action( self::HOOK, array( self::class, 'sync' ), 10, 1 );
+		// Variations saved via admin-ajax (woocommerce_save_variations), even when only meta changed.
+		add_action( 'woocommerce_save_product_variation', array( self::class, 'on_product_saved' ), 20, 1 );
+		add_action( 'woocommerce_rest_insert_product_object', array( self::class, 'on_product_object_saved' ), 20, 1 );
+		add_action( 'woocommerce_rest_insert_product_variation_object', array( self::class, 'on_product_object_saved' ), 20, 1 );
+		add_action( 'woocommerce_product_import_inserted_product_object', array( self::class, 'on_product_object_saved' ), 20, 1 );
+		add_action( 'trashed_post', array( self::class, 'on_post_trashed' ), 20, 1 );
+		add_action( 'untrashed_post', array( self::class, 'on_post_trashed' ), 20, 1 );
+		add_action( 'shutdown', array( self::class, 'flush' ), 5 );
+		add_action( self::HOOK, array( self::class, 'run_queued' ), 10, 2 );
 		add_action( self::BATCH_HOOK, array( self::class, 'sync_batch' ), 10, 1 );
 		add_action( self::STOCK_HOOK, array( self::class, 'pull_stock' ), 10, 1 );
 		add_action( 'add_option_skladx_stock_sync', array( self::class, 'stock_sync_enabled' ), 10, 2 );
@@ -162,6 +200,8 @@ final class ProductSync {
 	}
 
 	/**
+	 * Product or variation saved (any hook passing the id first).
+	 *
 	 * @param int $product_id Product id.
 	 */
 	public static function on_product_saved( $product_id ): void {
@@ -169,7 +209,107 @@ final class ProductSync {
 			return;
 		}
 
-		self::queue( (int) $product_id );
+		self::defer( (int) $product_id );
+	}
+
+	/**
+	 * REST API and CSV import hooks pass the product object.
+	 *
+	 * @param mixed $product Product.
+	 */
+	public static function on_product_object_saved( $product ): void {
+		if ( $product instanceof \WC_Product ) {
+			self::on_product_saved( $product->get_id() );
+		}
+	}
+
+	/**
+	 * Trashed products are sent as archived, restored ones as active.
+	 *
+	 * @param int $post_id Post id.
+	 */
+	public static function on_post_trashed( $post_id ): void {
+		if ( in_array( get_post_type( (int) $post_id ), array( 'product', 'product_variation' ), true ) ) {
+			self::on_product_saved( (int) $post_id );
+		}
+	}
+
+	/**
+	 * Remembers a product for the push at shutdown (once per request).
+	 */
+	public static function defer( int $product_id ): void {
+		if ( $product_id <= 0 ) {
+			return;
+		}
+
+		if ( self::$flushed ) {
+			self::queue( $product_id );
+
+			return;
+		}
+
+		self::$pending[ $product_id ] = true;
+	}
+
+	/**
+	 * Shutdown: pushes the products saved in this request.
+	 *
+	 * A variable product stands for its variations (their names and images
+	 * come from the parent). Unchanged products cost no request; the first
+	 * IMMEDIATE_LIMIT changed ones are sent now, the rest is queued.
+	 */
+	public static function flush(): void {
+		if ( self::$flushed ) {
+			return;
+		}
+
+		self::$flushed = true;
+		$sent          = 0;
+		$done          = array();
+		// A classic wp-admin save redirects to the edit screen, which shows the product error itself.
+		$notify = ! ( is_admin() && ! wp_doing_ajax() );
+
+		while ( array() !== self::$pending ) {
+			$product_id = (int) array_key_first( self::$pending );
+			unset( self::$pending[ $product_id ] );
+
+			if ( isset( $done[ $product_id ] ) ) {
+				continue;
+			}
+
+			$done[ $product_id ] = true;
+			$product             = wc_get_product( $product_id );
+
+			if ( $product instanceof \WC_Product && $product->is_type( 'variable' ) ) {
+				foreach ( $product->get_children() as $child_id ) {
+					self::$pending[ (int) $child_id ] ??= true;
+				}
+
+				continue;
+			}
+
+			if ( ! self::is_syncable( $product ) || ! self::needs_send( $product ) ) {
+				continue;
+			}
+
+			if ( $sent >= self::IMMEDIATE_LIMIT ) {
+				self::queue( $product_id );
+				continue;
+			}
+
+			++$sent;
+			self::sync( $product_id, $notify, false, 0, self::IMMEDIATE_TIMEOUT );
+		}
+	}
+
+	/**
+	 * Action Scheduler callback of HOOK.
+	 *
+	 * @param int $product_id Product id.
+	 * @param int $attempt    0 for a first try, n for retry n.
+	 */
+	public static function run_queued( $product_id, $attempt = 0 ): void {
+		self::sync( (int) $product_id, true, false, (int) $attempt );
 	}
 
 	public static function queue( int $product_id ): void {
@@ -219,19 +359,23 @@ final class ProductSync {
 	}
 
 	/**
-	 * Action Scheduler callback: push one product.
+	 * Pushes one product to SkladX.
 	 *
-	 * Unchanged payloads (e.g. a save that only changed stock) are skipped
+	 * Skipped without a request: unchanged payloads (e.g. a save that only
+	 * changed stock) of a product SkladX already links to this SKU and
+	 * external id, and a payload SkladX already rejected for good (409/422) —
 	 * unless $force is set.
 	 *
-	 * @param int  $product_id Product id.
-	 * @param bool $notify     Queue an admin notice on failure.
-	 * @param bool $force      Send even when nothing relevant changed.
+	 * @param int      $product_id Product id.
+	 * @param bool     $notify     Queue an admin notice on a final failure.
+	 * @param bool     $force      Send even when nothing relevant changed.
+	 * @param int      $attempt    Retry number (0 = first try).
+	 * @param int|null $timeout    HTTP timeout, null for the default.
 	 */
-	public static function sync( $product_id, $notify = true, $force = false ): void {
+	public static function sync( $product_id, $notify = true, $force = false, $attempt = 0, $timeout = null ): void {
 		$product = wc_get_product( (int) $product_id );
 
-		if ( ! $product instanceof \WC_Product || $product->is_type( 'variable' ) || $product->is_type( 'grouped' ) || $product->is_type( 'external' ) ) {
+		if ( ! self::is_syncable( $product ) ) {
 			return;
 		}
 
@@ -241,44 +385,149 @@ final class ProductSync {
 			return;
 		}
 
+		unset( self::$pending[ (int) $product->get_id() ] );
+
+		$hash = '';
+
 		try {
 			$payload = self::payload( $product );
-			$hash    = md5( (string) wp_json_encode( $payload ) );
+			$hash    = self::hash( $payload );
 
-			if ( ! $force && $hash === (string) $product->get_meta( self::HASH_META ) && '' === (string) $product->get_meta( self::ERROR_META ) ) {
+			if ( ! $force && ! self::needs_send( $product, $payload ) ) {
 				return;
 			}
 
-			$remote = Client::from_settings()->upsert_product( $payload );
+			$remote = Client::from_settings( null !== $timeout ? (int) $timeout : null )->upsert_product( $payload );
 
 			self::write_meta(
 				$product,
 				array(
-					self::LAST_SYNC_META => (string) time(),
-					self::HASH_META      => $hash,
+					self::LAST_SYNC_META   => (string) time(),
+					self::HASH_META        => $hash,
+					self::SKU_META         => (string) $payload['sku'],
+					self::EXTERNAL_ID_META => (string) ( $payload['external_id'] ?? '' ),
+					self::REMOTE_ID_META   => (string) ( $remote['id'] ?? '' ),
 				),
-				array( self::ERROR_META )
+				array( self::ERROR_META, self::ERROR_CODE_META, self::FAILED_HASH_META )
 			);
-			Logger::info( sprintf( 'Product %s synced (%s).', $payload['sku'], (string) ( $remote['id'] ?? '?' ) ) );
-		} catch ( MappingException | ApiException $exception ) {
-			$message = $exception instanceof ApiException ? $exception->summary() : $exception->localized_message();
-
-			self::write_meta( $product, array( self::ERROR_META => $message ) );
-			Logger::error( sprintf( 'Product %s sync failed: %s', $product->get_sku(), $message ) );
-
-			if ( $exception instanceof ApiException && $exception->is_retryable() ) {
-				as_schedule_single_action( time() + 300, self::HOOK, array( (int) $product->get_id() ), self::GROUP );
-			} elseif ( $notify ) {
-				Notices::add(
-					sprintf(
-						/* translators: 1: SKU, 2: error */
-						__( 'Product %1$s could not be synced to SkladX: %2$s', 'skladx-woocommerce' ),
-						esc_html( (string) $product->get_sku() ),
-						esc_html( $message )
-					)
-				);
+			if ( is_string( $remote['external_id'] ?? null ) && $remote['external_id'] !== (string) ( $payload['external_id'] ?? '' ) ) {
+				Logger::warning( sprintf( 'Product %s: SkladX keeps external id %s instead of %s.', $payload['sku'], $remote['external_id'], (string) ( $payload['external_id'] ?? '' ) ) );
 			}
+
+			Logger::info( sprintf( 'Product %s (%s) synced (%s).', $payload['sku'], (string) ( $payload['external_id'] ?? '' ), (string) ( $remote['id'] ?? '?' ) ) );
+		} catch ( MappingException | ApiException $exception ) {
+			self::failed( $product, $exception, $hash, (bool) $notify, (int) $attempt );
 		}
+	}
+
+	/**
+	 * Stores the error and decides between retry, notice and silence.
+	 *
+	 * @param \WC_Product                       $product   Product.
+	 * @param MappingException|ApiException     $exception Error.
+	 * @param string                            $hash      Hash of the payload that failed ('' when not built).
+	 * @param bool                              $notify    Queue an admin notice on a final failure.
+	 * @param int                               $attempt   Retry number.
+	 */
+	private static function failed( \WC_Product $product, $exception, string $hash, bool $notify, int $attempt ): void {
+		$api   = $exception instanceof ApiException ? $exception : null;
+		$code  = null !== $api ? $api->error_code : 'mapping_failed';
+		$final = null !== $api && in_array( $api->error_code, self::FINAL_ERROR_CODES, true );
+
+		if ( null !== $api && SkuConflict::matches( $api ) ) {
+			$message = SkuConflict::message( $api->details, $api->getMessage() );
+		} elseif ( null !== $api ) {
+			$message = $api->summary();
+		} else {
+			$message = $exception->localized_message();
+		}
+
+		$set = array(
+			self::ERROR_META      => $message,
+			self::ERROR_CODE_META => $code,
+		);
+
+		if ( $final && '' !== $hash ) {
+			$set[ self::FAILED_HASH_META ] = $hash;
+		}
+
+		self::write_meta( $product, $set, $final ? array() : array( self::FAILED_HASH_META ) );
+		Logger::error( sprintf( 'Product %s sync failed: %s', $product->get_sku(), $message ) );
+
+		if ( null !== $api && $api->is_retryable() && $attempt < count( self::BACKOFF ) ) {
+			$args = array( (int) $product->get_id(), $attempt + 1 );
+
+			if ( ! as_has_scheduled_action( self::HOOK, $args, self::GROUP ) ) {
+				as_schedule_single_action( time() + self::BACKOFF[ $attempt ], self::HOOK, $args, self::GROUP );
+			}
+
+			return;
+		}
+
+		if ( $notify ) {
+			Notices::add(
+				sprintf(
+					/* translators: 1: SKU, 2: error */
+					__( 'Product %1$s could not be synced to SkladX: %2$s', 'skladx-woocommerce' ),
+					esc_html( (string) $product->get_sku() ),
+					esc_html( $message )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Simple products and variations with a SKU, not auto-drafts.
+	 *
+	 * @param mixed $product Product.
+	 * @phpstan-assert-if-true \WC_Product $product
+	 */
+	public static function is_syncable( $product ): bool {
+		return $product instanceof \WC_Product
+			&& ! $product->is_type( 'variable' )
+			&& ! $product->is_type( 'grouped' )
+			&& ! $product->is_type( 'external' )
+			&& 'auto-draft' !== $product->get_status();
+	}
+
+	/**
+	 * Whether the product has to be sent (cheap — no request).
+	 *
+	 * Sent when the payload changed, the SKU differs from the one SkladX knows
+	 * (rename), SkladX has not confirmed the external id yet, or the last
+	 * attempt failed for a temporary reason. Not sent while the same payload
+	 * stays rejected for good (409/422).
+	 *
+	 * @param \WC_Product              $product Product.
+	 * @param array<string, mixed>|null $payload Payload, built when null.
+	 */
+	public static function needs_send( \WC_Product $product, ?array $payload = null ): bool {
+		if ( '' === (string) $product->get_sku() ) {
+			return false;
+		}
+
+		try {
+			$payload ??= self::payload( $product );
+		} catch ( MappingException $exception ) {
+			return true; // Let sync() record the error.
+		}
+
+		$hash = self::hash( $payload );
+
+		if ( '' !== (string) $product->get_meta( self::ERROR_META ) ) {
+			return $hash !== (string) $product->get_meta( self::FAILED_HASH_META );
+		}
+
+		return $hash !== (string) $product->get_meta( self::HASH_META )
+			|| (string) ( $payload['sku'] ?? '' ) !== (string) $product->get_meta( self::SKU_META )
+			|| (string) ( $payload['external_id'] ?? '' ) !== (string) $product->get_meta( self::EXTERNAL_ID_META );
+	}
+
+	/**
+	 * Stable external id of a product or variation (`wc:{site_key}:{id}`).
+	 */
+	public static function external_id( \WC_Product $product ): string {
+		return ExternalId::format( Settings::site_key(), (int) $product->get_id() );
 	}
 
 	/**
@@ -286,7 +535,7 @@ final class ProductSync {
 	 */
 	public static function payload( \WC_Product $product ): array {
 		$payload = ProductPayloadBuilder::build(
-			ProductPayloadBuilder::snapshot( $product ),
+			ProductPayloadBuilder::snapshot( $product, self::external_id( $product ) ),
 			(string) get_option( 'woocommerce_weight_unit', 'kg' ),
 			(string) get_option( 'woocommerce_dimension_unit', 'cm' ),
 			get_woocommerce_currency()
@@ -298,7 +547,19 @@ final class ProductSync {
 		 * @param array<string, mixed> $payload Payload for POST /products.
 		 * @param \WC_Product          $product Product.
 		 */
-		return (array) apply_filters( 'skladx_product_payload', $payload, $product );
+		$payload = (array) apply_filters( 'skladx_product_payload', $payload, $product );
+
+		// The external id links the product to SkladX; a filter must not drop it.
+		$payload['external_id'] = (string) ( $payload['external_id'] ?? '' ) ?: self::external_id( $product );
+
+		return $payload;
+	}
+
+	/**
+	 * @param array<string, mixed> $payload Payload.
+	 */
+	private static function hash( array $payload ): string {
+		return md5( (string) wp_json_encode( $payload ) );
 	}
 
 	/**
