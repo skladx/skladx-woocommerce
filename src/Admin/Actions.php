@@ -30,6 +30,7 @@ final class Actions {
 		'skladx_register_webhook' => 'register_webhook',
 		'skladx_sync_products'   => 'sync_products',
 		'skladx_poll_events'     => 'poll_events',
+		'skladx_pull_stock'      => 'pull_stock',
 		'skladx_order_send'      => 'order_send',
 		'skladx_order_refresh'   => 'order_refresh',
 		'skladx_order_cancel'    => 'order_cancel',
@@ -124,6 +125,20 @@ final class Actions {
 
 		ProductSync::queue_all();
 		Notices::add( __( 'All products with a SKU are being sent to SkladX in the background.', 'skladx-woocommerce' ), 'success' );
+
+		self::back_to_settings();
+	}
+
+	public static function pull_stock(): void {
+		self::guard( 'skladx_pull_stock' );
+
+		if ( ! Settings::stock_sync_enabled() ) {
+			Notices::add( __( 'Turn on stock sync first.', 'skladx-woocommerce' ), 'warning' );
+		} elseif ( ProductSync::queue_stock_pull() ) {
+			Notices::add( __( 'Stock levels are being taken over from SkladX in the background.', 'skladx-woocommerce' ), 'success' );
+		} else {
+			Notices::add( __( 'A stock sync is already running.', 'skladx-woocommerce' ), 'warning' );
+		}
 
 		self::back_to_settings();
 	}

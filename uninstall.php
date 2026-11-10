@@ -17,10 +17,13 @@ foreach ( $skladx_options as $skladx_option ) {
 	delete_option( $skladx_option );
 }
 
+// Cached pickup point searches.
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", $wpdb->esc_like( '_transient_skladx_pp' ) . '%', $wpdb->esc_like( '_transient_timeout_skladx_pp' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}skladx_events" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 if ( function_exists( 'as_unschedule_all_actions' ) ) {
-	foreach ( array( 'skladx_export_order', 'skladx_sync_product', 'skladx_sync_products_batch', 'skladx_process_event', 'skladx_poll_events', 'skladx_prune_events' ) as $skladx_hook ) {
+	foreach ( array( 'skladx_export_order', 'skladx_sync_product', 'skladx_sync_products_batch', 'skladx_pull_stock', 'skladx_process_event', 'skladx_poll_events', 'skladx_prune_events' ) as $skladx_hook ) {
 		as_unschedule_all_actions( $skladx_hook );
 	}
 }

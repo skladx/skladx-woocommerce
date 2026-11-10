@@ -48,7 +48,7 @@ final class EventProcessor {
 
 		try {
 			$data   = is_array( $event['envelope']['data'] ?? null ) ? $event['envelope']['data'] : array();
-			$result = self::dispatch( $event['type'], $data );
+			$result = self::dispatch( $event['type'], $data, $event['event_id'] );
 
 			EventStore::mark( $event['event_id'], $result );
 		} catch ( \Throwable $exception ) {
@@ -58,16 +58,18 @@ final class EventProcessor {
 	}
 
 	/**
-	 * @param array<string, mixed> $data Event data.
+	 * @param string               $type     Event type.
+	 * @param array<string, mixed> $data     Event data.
+	 * @param string               $event_id `evt_…` id (time-ordered ULID), used to skip stale stock events.
 	 * @return string processed|ignored
 	 */
-	public static function dispatch( string $type, array $data ): string {
+	public static function dispatch( string $type, array $data, string $event_id = '' ): string {
 		if ( str_starts_with( $type, 'order.' ) || 'shipment.tracking_updated' === $type ) {
 			return is_array( $data['order'] ?? null ) ? self::apply_order( $data['order'], $type ) : 'ignored';
 		}
 
 		if ( in_array( $type, array( 'stock.changed', 'product.created', 'product.updated' ), true ) ) {
-			return self::apply_stock( $data );
+			return self::apply_stock( $data, $event_id );
 		}
 
 		return 'ignored';
@@ -102,9 +104,10 @@ final class EventProcessor {
 	}
 
 	/**
-	 * @param array<string, mixed> $data Event data.
+	 * @param array<string, mixed> $data     Event data.
+	 * @param string               $event_id Event id.
 	 */
-	private static function apply_stock( array $data ): string {
+	private static function apply_stock( array $data, string $event_id ): string {
 		if ( ! Settings::stock_sync_enabled() ) {
 			return 'ignored';
 		}
@@ -112,7 +115,7 @@ final class EventProcessor {
 		$changed = false;
 
 		foreach ( self::stock_levels( $data ) as $sku => $available ) {
-			$changed = ProductSync::apply_stock( $sku, $available ) || $changed;
+			$changed = ProductSync::apply_stock( $sku, $available, $event_id ) || $changed;
 		}
 
 		return $changed ? 'processed' : 'ignored';
@@ -120,8 +123,10 @@ final class EventProcessor {
 
 	/**
 	 * Extracts `sku => available` from the supported payload shapes:
-	 * `{product: {sku, stock: {available}}}`, `{sku, available}`,
-	 * `{stock: {sku, available}}` and `{stock: [{sku, available}, …]}`.
+	 * `{product: {sku, …}, stock: {on_hand, reserved, available}}` (what
+	 * SkladX sends with `stock.changed`), `{product: {sku, stock: {available}}}`
+	 * (`product.*`), `{sku, available}`, `{stock: {sku, available}}` and
+	 * `{stock: [{sku, available}, …]}`.
 	 *
 	 * @param array<string, mixed> $data Event data.
 	 * @return array<string, int>
@@ -130,10 +135,16 @@ final class EventProcessor {
 		$candidates = array();
 
 		if ( is_array( $data['product'] ?? null ) ) {
+			$stock = is_array( $data['stock'] ?? null ) && ! array_is_list( $data['stock'] ) && ! isset( $data['stock']['sku'] ) ? $data['stock'] : array();
+
 			$candidates[] = array(
 				'sku'       => $data['product']['sku'] ?? null,
-				'available' => $data['product']['stock']['available'] ?? null,
+				'available' => $data['product']['stock']['available'] ?? ( $stock['available'] ?? null ),
 			);
+
+			if ( array() !== $stock ) {
+				unset( $data['stock'] );
+			}
 		}
 
 		if ( isset( $data['sku'] ) ) {

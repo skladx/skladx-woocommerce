@@ -12,6 +12,7 @@ use SkladX\WooCommerce\Admin\Notices;
 use SkladX\WooCommerce\Admin\OrderMetaBox;
 use SkladX\WooCommerce\Admin\ProductFields;
 use SkladX\WooCommerce\Admin\SettingsPage;
+use SkladX\WooCommerce\Pickup\Checkout as PickupCheckout;
 use SkladX\WooCommerce\Sync\AddressWatcher;
 use SkladX\WooCommerce\Sync\OrderExporter;
 use SkladX\WooCommerce\Sync\ProductSync;
@@ -52,6 +53,7 @@ final class Plugin {
 		ProductSync::register();
 		Tracking::register();
 		AddressWatcher::register();
+		PickupCheckout::register();
 		WebhookController::register();
 		EventProcessor::register();
 		EventPoller::register();

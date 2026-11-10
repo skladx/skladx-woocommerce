@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: SkladX for WooCommerce 0.1.1\n"
-"Report-Msgid-Bugs-To: https://github.com/skladx/skladx-woocommerce/issues\n"
+"Project-Id-Version: SkladX for WooCommerce 0.2.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/skladx-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-10T10:15:48+00:00\n"
+"POT-Creation-Date: 2026-11-10T11:01:06+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: skladx-woocommerce\n"
@@ -44,150 +44,182 @@ msgid "SkladX for WooCommerce requires WooCommerce to be installed and active."
 msgstr ""
 
 #. translators: %s: missing scopes
-#: src/Admin/Actions.php:65
+#: src/Admin/Actions.php:66
 #, php-format
 msgid "Connected, but the API key is missing scopes: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:67
+#: src/Admin/Actions.php:68
 msgid "Connection works."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:78
+#: src/Admin/Actions.php:79
 #, php-format
 msgid "Connection failed: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:98
+#: src/Admin/Actions.php:99
 msgid "SkladX did not return the webhook secret."
 msgstr ""
 
 #. translators: %s: webhook id
-#: src/Admin/Actions.php:113
+#: src/Admin/Actions.php:114
 #, php-format
 msgid "Webhook registered in SkladX (%s), signing secret saved."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:116
+#: src/Admin/Actions.php:117
 #, php-format
 msgid "Registering the webhook failed: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:126
+#: src/Admin/Actions.php:127
 msgid "All products with a SKU are being sent to SkladX in the background."
 msgstr ""
 
-#. translators: %d: number of events
 #: src/Admin/Actions.php:136
+msgid "Turn on stock sync first."
+msgstr ""
+
+#: src/Admin/Actions.php:138
+msgid "Stock levels are being taken over from SkladX in the background."
+msgstr ""
+
+#: src/Admin/Actions.php:140
+msgid "A stock sync is already running."
+msgstr ""
+
+#. translators: %d: number of events
+#: src/Admin/Actions.php:151
 #, php-format
 msgid "%d missed event found."
 msgid_plural "%d missed events found."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/Actions.php:145
+#: src/Admin/Actions.php:160
 msgid "The order is being sent to SkladX."
 msgstr ""
 
-#: src/Admin/Actions.php:147
+#: src/Admin/Actions.php:162
 msgid "The order is already in SkladX or queued."
 msgstr ""
 
-#: src/Admin/Actions.php:159
+#: src/Admin/Actions.php:174
 msgid "SkladX data refreshed."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:162
+#: src/Admin/Actions.php:177
 #, php-format
 msgid "Refreshing from SkladX failed: %s"
 msgstr ""
 
 #. translators: %s: user name
-#: src/Admin/Actions.php:173
+#: src/Admin/Actions.php:188
 #, php-format
 msgid "Cancelled in WooCommerce by %s"
 msgstr ""
 
-#: src/Admin/Actions.php:174
-#: src/Admin/Actions.php:176
+#: src/Admin/Actions.php:189
+#: src/Admin/Actions.php:191
 msgid "Order cancelled in SkladX."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:179
+#: src/Admin/Actions.php:194
 #, php-format
 msgid "Cancelling in SkladX failed: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:187
+#: src/Admin/Actions.php:202
 msgid "You are not allowed to do this."
 msgstr ""
 
-#: src/Admin/Actions.php:199
+#: src/Admin/Actions.php:214
 msgid "Order not found."
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:48
+#: src/Admin/OrderMetaBox.php:49
 msgid "SkladX is not configured."
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:60
+#: src/Admin/OrderMetaBox.php:63
+#: src/Pickup/Checkout.php:106
+#: src/Pickup/Checkout.php:378
+#: src/Pickup/Checkout.php:597
+#: src/Pickup/Checkout.php:630
+msgid "Pickup point:"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:67
 msgid "Queued for sending…"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:61
+#: src/Admin/OrderMetaBox.php:68
 msgid "Sending failed, will retry automatically."
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:62
+#: src/Admin/OrderMetaBox.php:69
 msgid "Sending failed."
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:65
+#: src/Admin/OrderMetaBox.php:72
 msgid "Not sent to SkladX yet."
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:74
+#: src/Admin/OrderMetaBox.php:81
 msgid "Resend to SkladX"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:74
+#: src/Admin/OrderMetaBox.php:81
 msgid "Send to SkladX"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:85
+#: src/Admin/OrderMetaBox.php:92
 msgid "Status"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:86
+#: src/Admin/OrderMetaBox.php:93
 msgid "Number"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:87
-#: src/Admin/SettingsPage.php:421
+#: src/Admin/OrderMetaBox.php:94
+#: src/Admin/SettingsPage.php:459
 msgid "sandbox"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:89
+#: src/Admin/OrderMetaBox.php:96
 msgid "Tracking"
 msgstr ""
 
-#: src/Admin/OrderMetaBox.php:92
-msgid "Last sync"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:96
-msgid "Refresh"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:102
-msgid "Cancel this order in the SkladX warehouse?"
+#: src/Admin/OrderMetaBox.php:100
+#: src/Admin/SettingsPage.php:305
+#: src/Pickup/Checkout.php:122
+#: src/Pickup/Checkout.php:614
+#: src/Pickup/Checkout.php:635
+msgid "Pickup point"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:103
+msgid "Last sync"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:112
+msgid "Track shipment"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:116
+msgid "Refresh"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:122
+msgid "Cancel this order in the SkladX warehouse?"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:123
 msgid "Cancel in SkladX"
 msgstr ""
 
@@ -200,344 +232,556 @@ msgstr ""
 msgid "Barcode used by the SkladX warehouse. Leave empty to use the GTIN/EAN field."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:58
+#: src/Admin/SettingsPage.php:60
 msgid "Connection"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:59
+#: src/Admin/SettingsPage.php:61
 msgid "API key from the SkladX client portal (Integrations → API keys). Keys starting with skx_test_ work with the sandbox, skx_live_ with production."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:64
+#: src/Admin/SettingsPage.php:66
 msgid "API base URL"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:67
+#: src/Admin/SettingsPage.php:69
 msgid "Including /api/v1, without a trailing slash."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:74
+#: src/Admin/SettingsPage.php:76
 msgid "API key"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:75
+#: src/Admin/SettingsPage.php:77
 msgid "Needs scopes orders:read/write, products:write, events:read and webhooks:write (stock:read optional). Leave empty to keep the saved key."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:86
+#: src/Admin/SettingsPage.php:88
 msgid "Webhook"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:87
+#: src/Admin/SettingsPage.php:89
 msgid "SkladX pushes order status, tracking and stock changes to this shop. Register the endpoint automatically, or add it in the SkladX portal and paste the signing secret below."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:93
+#: src/Admin/SettingsPage.php:95
 msgid "Webhook signing secret"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:94
+#: src/Admin/SettingsPage.php:96
 msgid "whsec_… — filled in automatically when the webhook is registered from here."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:104
+#: src/Admin/SettingsPage.php:106
 msgid "Orders"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:109
+#: src/Admin/SettingsPage.php:111
 msgid "Send orders in status"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:110
+#: src/Admin/SettingsPage.php:112
 msgid "An order is sent to SkladX once, when it reaches one of these statuses."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:118
+#: src/Admin/SettingsPage.php:120
 msgid "Cash on delivery payment methods"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:119
+#: src/Admin/SettingsPage.php:121
 msgid "Orders paid with these methods are sent with the order total as the COD amount."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:127
+#: src/Admin/SettingsPage.php:129
 msgid "Shipping methods → carriers"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:132
+#: src/Admin/SettingsPage.php:138
+msgid "Pickup point picker"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:139
+msgid "At checkout, show a \"Choose pickup point\" button for pickup point shipping methods (classic checkout and Checkout block). The point is required and checked with SkladX (exists, is active, accepts cash on delivery when paying by COD)."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:145
 msgid "Pickup point meta key"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:133
-msgid "Order (or shipping line) meta field holding the pickup point id, e.g. from a Packeta widget."
+#: src/Admin/SettingsPage.php:146
+msgid "Order (or shipping line) meta field holding the pickup point id. The picker writes the chosen point here; if you use another pickup point plugin, enter the key it writes."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:140
+#: src/Admin/SettingsPage.php:153
+msgid "Packeta widget API key"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:154
+msgid "Optional. With your Packeta API key the official Packeta widget (map of all Packeta points) opens instead of the built-in picker for Packeta. The key is public — it is used in the browser."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:161
 msgid "SkladX status → WooCommerce status"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:150
+#: src/Admin/SettingsPage.php:171
 msgid "Products & stock"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:155
+#: src/Admin/SettingsPage.php:176
 msgid "Product sync"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:156
+#: src/Admin/SettingsPage.php:177
 msgid "Send products (SKU, name, EAN, weight, dimensions, price) to SkladX when they are saved."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:162
+#: src/Admin/SettingsPage.php:183
 msgid "Stock sync"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:163
-msgid "Set WooCommerce stock to the quantity available in the SkladX warehouse (SkladX is the source of truth). Only products with \"Manage stock\" enabled are updated."
+#: src/Admin/SettingsPage.php:184
+msgid "Set WooCommerce stock to the quantity available in the SkladX warehouse (on hand minus reserved; SkladX is the source of truth). Units of orders not yet sent to SkladX stay deducted. Only products with \"Manage stock\" enabled are updated. Turning it on takes over all stock levels once."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:175
+#: src/Admin/SettingsPage.php:196
 msgid "Advanced"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:180
+#: src/Admin/SettingsPage.php:201
 msgid "Debug log"
 msgstr ""
 
 #. translators: %s: link to WooCommerce logs
-#: src/Admin/SettingsPage.php:183
+#: src/Admin/SettingsPage.php:204
 #, php-format
 msgid "Log every API call and webhook to WooCommerce → Status → <a href=\"%s\">Logs</a> (source \"skladx\"). API keys and secrets are always masked."
 msgstr ""
 
 #. translators: %s: masked secret
-#: src/Admin/SettingsPage.php:207
+#: src/Admin/SettingsPage.php:228
 #, php-format
 msgid "Saved: %s"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:209
+#: src/Admin/SettingsPage.php:230
 msgid "Remove"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:254
+#: src/Admin/SettingsPage.php:275
 msgid "Locations not covered by your other zones"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:280
+#: src/Admin/SettingsPage.php:302
 msgid "No shipping methods configured yet."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:283
+#: src/Admin/SettingsPage.php:305
 msgid "Shipping method"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:283
+#: src/Admin/SettingsPage.php:305
 msgid "SkladX carrier"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:290
+#: src/Admin/SettingsPage.php:312
 msgid "— warehouse decides —"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:301
-msgid "Sent as \"carrier\" with every order. For Packeta pickup points also set the pickup point meta key below."
+#: src/Admin/SettingsPage.php:320
+msgid "delivers to a pickup point"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:338
+#: src/Admin/SettingsPage.php:327
+msgid "Sent as \"carrier\" with every order. Methods that deliver to a pickup point (Packeta by default) get the pickup point picker at checkout; the chosen point is sent as \"pickup_point_id\"."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:376
 msgid "SkladX status"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:338
+#: src/Admin/SettingsPage.php:376
 msgid "Change WooCommerce order to"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:345
+#: src/Admin/SettingsPage.php:383
 msgid "— keep (order note only) —"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:355
+#: src/Admin/SettingsPage.php:393
 msgid "Every SkladX status change is added as an order note; mapped statuses also change the WooCommerce order status (which may send the usual customer emails)."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:382
+#: src/Admin/SettingsPage.php:420
 msgid "Draft"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:383
+#: src/Admin/SettingsPage.php:421
 msgid "Received"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:384
+#: src/Admin/SettingsPage.php:422
 msgid "On hold"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:385
+#: src/Admin/SettingsPage.php:423
 msgid "Awaiting stock"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:386
+#: src/Admin/SettingsPage.php:424
 msgid "Ready for fulfilment"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:387
+#: src/Admin/SettingsPage.php:425
 msgid "Stock allocated"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:388
+#: src/Admin/SettingsPage.php:426
 msgid "Picking"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:389
+#: src/Admin/SettingsPage.php:427
 msgid "Picked"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:390
+#: src/Admin/SettingsPage.php:428
 msgid "Packing"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:391
+#: src/Admin/SettingsPage.php:429
 msgid "Packed"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:392
+#: src/Admin/SettingsPage.php:430
 msgid "Label created"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:393
+#: src/Admin/SettingsPage.php:431
 msgid "Handed over to carrier"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:394
+#: src/Admin/SettingsPage.php:432
 msgid "In transit"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:395
+#: src/Admin/SettingsPage.php:433
 msgid "Out for delivery"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:396
+#: src/Admin/SettingsPage.php:434
 msgid "Delivered"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:397
+#: src/Admin/SettingsPage.php:435
 msgid "Delivery failed"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:398
+#: src/Admin/SettingsPage.php:436
 msgid "Returning"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:399
+#: src/Admin/SettingsPage.php:437
 msgid "Returned"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:400
+#: src/Admin/SettingsPage.php:438
 msgid "Cancelled"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:410
+#: src/Admin/SettingsPage.php:448
 msgid "Connection status"
 msgstr ""
 
 #. translators: 1: client name, 2: environment name, 3: sandbox/production
-#: src/Admin/SettingsPage.php:418
+#: src/Admin/SettingsPage.php:456
 #, php-format
 msgid "Connected to client %1$s, environment %2$s (%3$s)."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:421
+#: src/Admin/SettingsPage.php:459
 msgid "production"
 msgstr ""
 
 #. translators: 1: scopes, 2: date
-#: src/Admin/SettingsPage.php:428
+#: src/Admin/SettingsPage.php:466
 #, php-format
 msgid "Scopes: %1$s · checked %2$s"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:434
+#: src/Admin/SettingsPage.php:472
 msgid "Not tested yet. Save the settings, then test the connection."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:436
+#: src/Admin/SettingsPage.php:474
 msgid "Test connection"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:446
+#: src/Admin/SettingsPage.php:484
 msgid "Endpoint URL"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:451
+#: src/Admin/SettingsPage.php:489
 msgid "This is not an absolute URL, SkladX cannot deliver webhooks to it."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:452
+#: src/Admin/SettingsPage.php:490
 msgid "The URL contains the server path of WordPress: the site address (option \"home\") is wrong. Fix the site address or set the URL with the skladx_webhook_url filter, then re-register the webhook."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:453
+#: src/Admin/SettingsPage.php:491
 msgid "The URL does not use HTTPS, SkladX may refuse it and the signed payloads travel unencrypted."
 msgstr ""
 
 #. translators: %s: comma separated event types
-#: src/Admin/SettingsPage.php:463
+#: src/Admin/SettingsPage.php:501
 #, php-format
 msgid "Events: %s"
 msgstr ""
 
 #. translators: %s: webhook id
-#: src/Admin/SettingsPage.php:470
+#: src/Admin/SettingsPage.php:508
 #, php-format
 msgid "Registered in SkladX as %s."
 msgstr ""
 
-#: src/Admin/SettingsPage.php:474
+#: src/Admin/SettingsPage.php:512
 msgid "Re-register webhook"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:474
+#: src/Admin/SettingsPage.php:512
 msgid "Register webhook in SkladX"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:485
+#: src/Admin/SettingsPage.php:523
 msgid "Tools"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:487
+#: src/Admin/SettingsPage.php:525
 msgid "Sync all products"
 msgstr ""
 
-#: src/Admin/SettingsPage.php:488
+#: src/Admin/SettingsPage.php:527
+msgid "Take over stock from SkladX now"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:529
 msgid "Fetch missed events now"
 msgstr ""
 
 #. translators: 1: processed count, 2: ignored count, 3: failed count, 4: pending count
-#: src/Admin/SettingsPage.php:493
+#: src/Admin/SettingsPage.php:534
 #, php-format
 msgid "Received events (last 30 days): %1$d processed, %2$d ignored, %3$d failed, %4$d pending. Missed webhooks are fetched automatically every 10 minutes."
 msgstr ""
 
-#: src/Api/Client.php:121
+#: src/Api/Client.php:159
 msgid "SkladX API URL or API key is not configured."
 msgstr ""
 
-#: src/Plugin.php:75
-#: src/Plugin.php:99
-#: src/Plugin.php:103
+#: src/Pickup/Checkout.php:104
+#: src/Pickup/Checkout.php:384
+msgid "Choose pickup point"
+msgstr ""
+
+#: src/Pickup/Checkout.php:105
+msgid "Change"
+msgstr ""
+
+#: src/Pickup/Checkout.php:107
+msgid "Choose a pickup point"
+msgstr ""
+
+#: src/Pickup/Checkout.php:108
+msgid "City, postcode or name"
+msgstr ""
+
+#: src/Pickup/Checkout.php:109
+msgid "Search"
+msgstr ""
+
+#: src/Pickup/Checkout.php:110
+msgid "Near me"
+msgstr ""
+
+#: src/Pickup/Checkout.php:111
+msgid "Select"
+msgstr ""
+
+#: src/Pickup/Checkout.php:112
+msgid "Close"
+msgstr ""
+
+#: src/Pickup/Checkout.php:113
+msgid "Loading…"
+msgstr ""
+
+#: src/Pickup/Checkout.php:114
+msgid "Show more"
+msgstr ""
+
+#: src/Pickup/Checkout.php:115
+msgid "No pickup points found. Try another city or postcode."
+msgstr ""
+
+#: src/Pickup/Checkout.php:116
+#: src/Pickup/RestController.php:94
+msgid "Pickup points cannot be loaded right now. Please try again in a moment."
+msgstr ""
+
+#: src/Pickup/Checkout.php:117
+msgid "Your location is not available. Search by city or postcode instead."
+msgstr ""
+
+#: src/Pickup/Checkout.php:118
+msgid "Cash on delivery"
+msgstr ""
+
+#: src/Pickup/Checkout.php:119
+msgid "No cash on delivery"
+msgstr ""
+
+#: src/Pickup/Checkout.php:120
+msgid "Card payment"
+msgstr ""
+
+#: src/Pickup/Checkout.php:121
+msgid "Parcel locker"
+msgstr ""
+
+#: src/Pickup/Checkout.php:123
+msgid "Post office"
+msgstr ""
+
+#: src/Pickup/Checkout.php:124
+msgid "Map"
+msgstr ""
+
+#: src/Pickup/Checkout.php:125
+msgid "Opening hours"
+msgstr ""
+
+#. translators: %s: date
+#: src/Pickup/Checkout.php:127
+#, php-format
+msgid "Closes on %s"
+msgstr ""
+
+#: src/Pickup/Checkout.php:128
+#: src/Pickup/Checkout.php:332
+msgid "Please choose a pickup point for the selected shipping method."
+msgstr ""
+
+#: src/Pickup/Checkout.php:129
+msgid "Showing only points that accept cash on delivery."
+msgstr ""
+
+#: src/Pickup/Checkout.php:141
+msgctxt "day"
+msgid "Mon"
+msgstr ""
+
+#: src/Pickup/Checkout.php:142
+msgctxt "day"
+msgid "Tue"
+msgstr ""
+
+#: src/Pickup/Checkout.php:143
+msgctxt "day"
+msgid "Wed"
+msgstr ""
+
+#: src/Pickup/Checkout.php:144
+msgctxt "day"
+msgid "Thu"
+msgstr ""
+
+#: src/Pickup/Checkout.php:145
+msgctxt "day"
+msgid "Fri"
+msgstr ""
+
+#: src/Pickup/Checkout.php:146
+msgctxt "day"
+msgid "Sat"
+msgstr ""
+
+#: src/Pickup/Checkout.php:147
+msgctxt "day"
+msgid "Sun"
+msgstr ""
+
+#: src/Pickup/Checkout.php:148
+msgid "closed"
+msgstr ""
+
+#: src/Pickup/Checkout.php:149
+msgid "non-stop"
+msgstr ""
+
+#: src/Pickup/Checkout.php:183
+msgid "This carrier does not deliver to pickup points."
+msgstr ""
+
+#: src/Pickup/Checkout.php:231
+msgid "The pickup point cannot be verified right now. Please try again in a moment."
+msgstr ""
+
+#. translators: %s: pickup point name
+#: src/Pickup/Checkout.php:335
+#, php-format
+msgid "The pickup point %s is out of service. Please choose another one."
+msgstr ""
+
+#. translators: %s: pickup point name
+#: src/Pickup/Checkout.php:338
+#, php-format
+msgid "The pickup point %s does not accept cash on delivery. Choose another point or another payment method."
+msgstr ""
+
+#: src/Pickup/Checkout.php:340
+msgid "The chosen pickup point does not exist. Please choose another one."
+msgstr ""
+
+#: src/Pickup/Checkout.php:342
+msgid "The pickup point cannot be used. Please choose another one."
+msgstr ""
+
+#: src/Pickup/Checkout.php:384
+msgid "Change pickup point"
+msgstr ""
+
+#: src/Pickup/Checkout.php:505
+msgid "Chosen pickup points by carrier."
+msgstr ""
+
+#: src/Pickup/RestController.php:68
+msgid "Pickup point search is not available."
+msgstr ""
+
+#: src/Pickup/RestController.php:74
+msgid "Invalid pickup point search."
+msgstr ""
+
+#: src/Pickup/RestController.php:86
+msgid "Too many searches, please wait a moment."
+msgstr ""
+
+#: src/Plugin.php:77
+#: src/Plugin.php:101
+#: src/Plugin.php:105
 msgctxt "Order status"
 msgid "Shipped (SkladX)"
 msgstr ""
 
 #. translators: %s: number of orders
-#: src/Plugin.php:81
+#: src/Plugin.php:83
 #, php-format
 msgid "Shipped (SkladX) <span class=\"count\">(%s)</span>"
 msgid_plural "Shipped (SkladX) <span class=\"count\">(%s)</span>"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Plugin.php:134
+#: src/Plugin.php:136
 msgid "Settings"
 msgstr ""
 
@@ -608,7 +852,7 @@ msgid "Track your parcel: %s"
 msgstr ""
 
 #. translators: 1: SKU, 2: error
-#: src/Sync/ProductSync.php:156
+#: src/Sync/ProductSync.php:275
 #, php-format
 msgid "Product %1$s could not be synced to SkladX: %2$s"
 msgstr ""

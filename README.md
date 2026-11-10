@@ -3,9 +3,10 @@
 Connects a WooCommerce shop with the **SkladX** fulfilment warehouse:
 
 - sends orders to SkladX when they reach a chosen status (Action Scheduler queue, idempotent, retries with backoff),
+- pickup point picker at checkout (classic checkout and Checkout block) for Packeta and other pickup carriers, with points from SkladX,
 - syncs products (SKU, name, EAN, weight, dimensions, price) and optionally takes stock levels from SkladX,
 - receives order status and tracking updates via signed webhooks (HMAC-SHA256) and a polling fallback,
-- shows a SkladX box on the order screen (status, number, tracking, last sync, Send/Resend, Refresh, Cancel in SkladX).
+- shows a SkladX box on the order screen (status, number, tracking with a *Track shipment* button, pickup point, last sync, Send/Resend, Refresh, Cancel in SkladX).
 
 Requirements: WordPress 6.4+, WooCommerce 8.2+, PHP 8.1+. Compatible with HPOS (custom order tables) and Cart/Checkout blocks. No runtime Composer dependencies.
 
@@ -24,16 +25,18 @@ Requirements: WordPress 6.4+, WooCommerce 8.2+, PHP 8.1+. Compatible with HPOS (
 | Setting | Notes |
 | --- | --- |
 | API base URL | Your SkladX URL including `/api/v1`, e.g. `https://app.example/api/v1`. |
-| API key | From the SkladX client portal (*Integrations → API keys*). `skx_test_…` = sandbox, `skx_live_…` = production. Required scopes: `orders:read`, `orders:write`, `products:write`, `events:read`, `webhooks:write` (`stock:read`, `webhooks:read` optional). The key is stored in the options table, never printed back into the page and never logged. |
+| API key | From the SkladX client portal (*Integrations → API keys*). `skx_test_…` = sandbox, `skx_live_…` = production. Required scopes: `orders:read`, `orders:write`, `products:write`, `events:read`, `webhooks:write`; `pickup_points:read` for the pickup point picker, `stock:read` for taking over stock levels (`webhooks:read` optional). The key is stored in the options table, never printed back into the page and never logged. |
 | Test connection | Calls `GET /ping` and shows client, environment and scopes; warns about missing scopes. |
 | Webhook | *Register webhook in SkladX* calls `POST /webhooks` and stores the signing secret. To do it manually, copy the endpoint URL (`https://your-shop/wp-json/skladx/v1/webhook`) into the SkladX portal and paste the `whsec_…` secret into *Webhook signing secret*. |
 | Send orders in status | Default *Processing*. An order is sent once. |
 | Cash on delivery payment methods | Orders paid with these gateways get `cod_cents` = order total. Default `cod`. |
-| Shipping methods → carriers | Each shipping method instance (`method_id:instance_id`) maps to a SkladX carrier: `packeta`, `dpd_sk`, `gls_sk`, `sps`, `posta_sk`, `balikovo`. A plain `method_id` key also works (via the `skladx_carrier_map` option). |
-| Pickup point meta key | Order or shipping-line meta holding the pickup point id (default `_skladx_pickup_point_id`). Set it to the key your Packeta/pickup widget writes. SkladX validates the point (must exist, be active and accept COD). |
+| Shipping methods → carriers | Each shipping method instance (`method_id:instance_id`) maps to a SkladX carrier: `packeta`, `dpd_sk`, `gls_sk`, `sps`, `posta_sk`, `balikovo`. A plain `method_id` key also works (via the `skladx_carrier_map` option). The *Pickup point* column marks methods that deliver to a pickup point (default: every method mapped to `packeta`, filter `skladx_pickup_carriers`). |
+| Pickup point picker | On by default. Adds *Choose pickup point* under a chosen pickup point method at checkout (see below). |
+| Pickup point meta key | Order or shipping-line meta holding the pickup point id (default `_skladx_pickup_point_id`). The picker writes here; if another pickup point plugin is used, set the key it writes. SkladX validates the point (must exist, be active and accept COD). |
+| Packeta widget API key | Optional. When set, Packeta methods open the official Packeta widget (`widget.packeta.com`) instead of the built-in picker. The chosen point is still verified with SkladX. The key is public (used in the browser). |
 | SkladX status → WooCommerce status | Every SkladX status change becomes an order note; mapped ones also change the WC status. Defaults: `handed_over` → *Shipped (SkladX)* (custom status `wc-skladx-shipped`, counts as paid), `delivered` → *Completed*, `cancelled` → *Cancelled*. |
 | Product sync | On product save (and *Sync all products*) → `POST /products` upsert by SKU. Products without SKU are skipped. Saves that do not change the payload (e.g. stock only) are not sent. |
-| Stock sync | Off by default. When on, SkladX is the source of truth: `stock.changed` / `product.*` events set WC stock to SkladX `available` for products with *Manage stock*. |
+| Stock sync | Off by default. When on, SkladX is the source of truth: `stock.changed` / `product.*` events set WC stock to SkladX `available` (on hand − reserved) for products with *Manage stock*. Units of WC orders not yet in SkladX (e.g. bank transfer on hold) stay deducted. Turning it on, or *Take over stock from SkladX now*, pulls all levels via `GET /stock`. Older events never overwrite newer ones (event ids are time-ordered). |
 | Debug log | WooCommerce → Status → Logs, source `skladx`. Secrets are masked (`skx_*`, `whsec_*`, `Bearer …`). Errors are always logged. |
 
 ### Order payload
@@ -44,6 +47,15 @@ The `Idempotency-Key` is `wc:<host>:order:<id>`; after a rejected attempt (4xx) 
 
 Filters: `skladx_order_payload`, `skladx_product_payload`, `skladx_tracking_url`, `skladx_find_order_by_reference` (for sequential order number plugins), `skladx_webhook_url` (public webhook URL behind a proxy).
 
+### Pickup point picker
+
+Works in the classic checkout and in the Checkout block (no build step, no extra libraries).
+
+1. When the chosen shipping method is a pickup point method, *Choose pickup point* opens a dialog: search by city, postcode or name, *Near me* (browser location, 10 km), a list with type, COD/card badges, distance and opening hours, and an OpenStreetMap preview of the highlighted point. When a COD gateway is selected, only points accepting cash on delivery are listed.
+2. Points come from the plugin's REST proxy `GET /wp-json/skladx/v1/pickup-points?carrier=packeta&q=…&near=lat,lng&cod=1&cursor=…&country=SK`, which calls SkladX `GET /pickup-points` with the shop's API key (never sent to the browser). Only carriers of pickup point methods are allowed; answers are cached per query for 1 hour (transients), single points for 6 hours, and cache misses are limited to 30 per minute per visitor. Filter: `skladx_pickup_points_query`.
+3. The choice is saved via the Store API (`POST /wc/store/v1/cart/extensions`, namespace `skladx-pickup`), verified with SkladX (`GET /pickup-points/{carrier}/{id}`) and kept in the WooCommerce session.
+4. Placing the order validates again on the server: a point must be chosen, belong to the carrier, be active, and accept COD when a COD gateway is used. The id is stored in the pickup point meta key; `_skladx_pickup_point_carrier`, `_skladx_pickup_point_name`, `_skladx_pickup_point_address` and `_skladx_pickup_point` (full point) are stored for display on the order screen, the thank-you/My account page and in emails. The id is sent to SkladX as `pickup_point_id`.
+
 ### Webhook
 
 `POST /wp-json/skladx/v1/webhook`
@@ -52,7 +64,7 @@ Filters: `skladx_order_payload`, `skladx_product_payload`, `skladx_tracking_url`
 2. Stores the event in `wp_skladx_events` keyed by `X-SkladX-Event-Id` (atomic dedupe; duplicates answer `200 {"duplicate":true}`).
 3. Answers `200` immediately; processing runs in Action Scheduler (`skladx_process_event`).
 
-Handled events: `order.status_changed`, `order.shipped`, `order.delivered`, `order.delivery_failed`, `order.cancelled`, `order.returned`, `shipment.tracking_updated` (status, mapping, notes, tracking), `stock.changed`, `product.created`, `product.updated` (stock, if enabled), `ping`. Stale events (older `status_changed_at`) are ignored. A new tracking number is added as a **customer note** (sends the "Customer note" email) and shown on the order page and in WooCommerce emails. If SkladX sends no tracking URL, the public tracking page of the carrier is used (Packeta, DPD, GLS, Slovenská pošta).
+Handled events: `order.status_changed`, `order.shipped`, `order.delivered`, `order.delivery_failed`, `order.cancelled`, `order.returned`, `shipment.tracking_updated` (status, mapping, notes, tracking), `stock.changed`, `product.created`, `product.updated` (stock, if enabled), `ping`. Stale events (older `status_changed_at`) are ignored. A new tracking number is added as a **customer note** (sends the "Customer note" email) and shown on the order page, in My account, in WooCommerce emails and in the admin SkladX box (*Track shipment* button). If SkladX sends no tracking URL, the public tracking page of the carrier is used (Packeta, DPD, GLS, Slovenská pošta).
 
 **Polling fallback:** every 10 minutes `GET /events?after=<last evt_…>` (all pages, processed oldest first). Events the webhook missed go through the same inbox and dedupe. *Fetch missed events now* runs it on demand. The first run only remembers the newest event (no backfill). Changing the API key or URL resets the cursor.
 
@@ -73,12 +85,13 @@ Deleting the plugin removes all `skladx_*` options, the `wp_skladx_events` table
 
 ```bash
 composer install      # dev only: PHPUnit
-composer test         # unit tests: signature, payload mapping, status mapping, redaction
-wp i18n make-pot . languages/skladx-woocommerce.pot --exclude=vendor,tests
+composer test         # unit tests: signature, payload mapping, status mapping, redaction, pickup points (proxy query, cache, validation)
+wp i18n make-pot . languages/skladx-woocommerce.pot --exclude=vendor,tests --skip-js
+wp i18n update-po languages/skladx-woocommerce.pot languages/skladx-woocommerce-sk_SK.po
 msgfmt -o languages/skladx-woocommerce-sk_SK.mo languages/skladx-woocommerce-sk_SK.po
 ```
 
-Source strings are English; Slovak translation is in `languages/skladx-woocommerce-sk_SK.po`.
+Source strings are English; Slovak translation is in `languages/skladx-woocommerce-sk_SK.po`. Texts of the checkout scripts are passed from PHP (`skladxPickupConfig.i18n`), so no JSON translation files are needed.
 
 ---
 
@@ -103,15 +116,17 @@ Plugin prepojí WooCommerce so skladom **SkladX**: odosiela objednávky, synchro
 - **Odosielať objednávky v stave** – predvolene *Spracováva sa*; objednávka sa odošle raz.
 - **Platobné metódy na dobierku** – suma objednávky sa pošle ako `cod_cents`.
 - **Spôsoby dopravy → dopravcovia** – `packeta`, `dpd_sk`, `gls_sk`, `sps`, `posta_sk`, `balikovo`.
-- **Meta kľúč výdajného miesta** – meta pole s ID výdajného miesta (predvolene `_skladx_pickup_point_id`); SkladX miesto overí.
+- **Výdajné miesto** – v tabuľke dopravcov stĺpec *Výdajné miesto* označí spôsoby dopravy na výdajné miesto (predvolene všetky namapované na `packeta`). V pokladni (klasickej aj blokovej) sa pri nich zobrazí tlačidlo *Vybrať výdajné miesto*: vyhľadávanie podľa mesta, PSČ alebo názvu, *V mojom okolí*, zoznam s otváracími hodinami a náhľad mapy. Miesta načítava plugin cez vlastné REST rozhranie (API kľúč SkladX sa do prehliadača nikdy nedostane), odpovede sa ukladajú do cache. Výber je povinný a server ho pri objednávke overí (existuje, je v prevádzke, pri dobierke prijíma dobierku). Kľúč `pickup_points:read` musí mať oprávnenie.
+- **Meta kľúč výdajného miesta** – meta pole s ID výdajného miesta (predvolene `_skladx_pickup_point_id`); sem zapisuje výber výdajného miesta, SkladX miesto overí.
+- **API kľúč widgetu Packeta** – nepovinné; ak je vyplnený, pri Packete sa otvorí oficiálny widget Packeta.
 - **Stav SkladX → stav WooCommerce** – každá zmena je poznámka k objednávke, namapované stavy zmenia aj stav objednávky. Predvolene: `handed_over` → *Odoslaná (SkladX)*, `delivered` → *Vybavená*, `cancelled` → *Zrušená*.
 - **Synchronizácia produktov** – pri uložení produktu a tlačidlom *Synchronizovať všetky produkty* (upsert podľa SKU; EAN z poľa *EAN pre SkladX* alebo GTIN).
-- **Synchronizácia zásob** – predvolene vypnutá; po zapnutí je zdrojom pravdy SkladX.
+- **Synchronizácia zásob** – predvolene vypnutá; po zapnutí je zdrojom pravdy SkladX (dostupné = na sklade − rezervované). Pri zapnutí a tlačidlom *Prevziať zásoby zo SkladX teraz* sa prevezmú všetky stavy. Kusy z objednávok, ktoré ešte nie sú v SkladX, zostanú odpočítané.
 - **Ladiaci log** – WooCommerce → Stav → Logy, zdroj `skladx`, tajné údaje maskované.
 
 ### Webhook a záložné načítanie
 
-Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Event-Id`, odpovie hneď `200` a spracuje udalosť na pozadí. Číslo zásielky sa zákazníkovi pošle ako poznámka (e-mail) a zobrazí sa v detaile objednávky a v e-mailoch. Každých 10 minút plugin načíta `GET /events?after=…`, aby zachytil zmeškané webhooky.
+Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Event-Id`, odpovie hneď `200` a spracuje udalosť na pozadí. Číslo zásielky sa zákazníkovi pošle ako poznámka (e-mail) a zobrazí sa v detaile objednávky, v Mojom účte, v e-mailoch a v boxe SkladX (tlačidlo *Sledovať zásielku*). Každých 10 minút plugin načíta `GET /events?after=…`, aby zachytil zmeškané webhooky.
 
 ### Riešenie problémov
 
@@ -126,6 +141,14 @@ Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Eve
 Zmaže nastavenia `skladx_*`, tabuľku `wp_skladx_events` a naplánované akcie. Meta údaje objednávok (`_skladx_*`) zostávajú.
 
 ## Changelog
+
+### 0.2.0
+
+- Pickup point picker at checkout (classic checkout and Checkout block) for pickup point shipping methods: search by city/postcode/name, near me, list with opening hours, COD/card badges and map preview. Points are loaded through a cached, rate-limited WP REST proxy (`skladx/v1/pickup-points`) — the SkladX API key stays on the server. The choice is required and validated on the server (exists, active, right carrier, accepts COD), stored in the pickup point meta key plus name/address meta and shown in admin, emails and the customer's order page.
+- New settings: *Pickup point* column in the carrier table, *Pickup point picker*, optional *Packeta widget API key* (official Packeta widget instead of the built-in picker).
+- Fix: stock sync ignored the `stock.changed` payload SkladX actually sends (`{product: {sku}, stock: {available}}`), so WooCommerce stock never changed.
+- Stock sync: stale events no longer overwrite newer levels; units of orders not yet in SkladX stay deducted; turning stock sync on (or *Take over stock from SkladX now*) pulls all levels via `GET /stock`.
+- *Track shipment* button and pickup point in the SkladX box on the order screen.
 
 ### 0.1.1
 

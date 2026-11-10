@@ -14,6 +14,16 @@ final class EventPayloadTest extends TestCase {
 		$this->assertSame( array( 'KOL-300' => 8 ), EventProcessor::stock_levels( $data ) );
 	}
 
+	public function test_reads_stock_changed_payload_sent_by_skladx(): void {
+		$data = array(
+			'stock'            => array( 'on_hand' => 10, 'reserved' => 3, 'available' => 7 ),
+			'product'          => array( 'id' => 'prd_01m72dcrz0hdz351re3c7y9mgf', 'ean' => '8588000000062', 'sku' => 'RF-PONOZKY' ),
+			'previous_on_hand' => 7,
+		);
+
+		$this->assertSame( array( 'RF-PONOZKY' => 7 ), EventProcessor::stock_levels( $data ) );
+	}
+
 	public function test_reads_flat_and_list_stock_payloads(): void {
 		$this->assertSame( array( 'A' => 5 ), EventProcessor::stock_levels( array( 'sku' => 'A', 'available' => 5 ) ) );
 		$this->assertSame( array( 'A' => 1 ), EventProcessor::stock_levels( array( 'stock' => array( 'sku' => 'A', 'available' => '1' ) ) ) );

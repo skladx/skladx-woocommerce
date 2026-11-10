@@ -21,6 +21,9 @@ final class Settings {
 	/** Carrier codes accepted by SkladX. */
 	public const CARRIERS = array( 'packeta', 'dpd_sk', 'gls_sk', 'sps', 'posta_sk', 'balikovo' );
 
+	/** Carriers whose shipping methods deliver to a pickup point by default (others can be ticked in the settings). */
+	public const PICKUP_CARRIERS = array( 'packeta' );
+
 	/** Events the plugin subscribes to when it registers its webhook. */
 	public const WEBHOOK_EVENTS = array(
 		'order.status_changed',
@@ -49,6 +52,9 @@ final class Settings {
 			'export_statuses'       => array( 'wc-processing' ),
 			'carrier_map'           => array(),
 			'pickup_point_meta_key' => '_skladx_pickup_point_id',
+			'pickup_picker'         => 'yes',
+			'pickup_methods'        => null,
+			'packeta_widget_key'    => '',
 			'cod_gateways'          => array( 'cod' ),
 			'product_sync'          => 'yes',
 			'stock_sync'            => 'no',
@@ -134,6 +140,52 @@ final class Settings {
 
 	public static function pickup_point_meta_key(): string {
 		return trim( (string) self::get( 'pickup_point_meta_key' ) );
+	}
+
+	public static function pickup_picker_enabled(): bool {
+		return 'yes' === self::get( 'pickup_picker' );
+	}
+
+	/**
+	 * Shipping methods that deliver to a pickup point, with their carrier.
+	 *
+	 * Until the merchant saves the setting, every method mapped to a carrier
+	 * in PICKUP_CARRIERS (filter `skladx_pickup_carriers`) counts.
+	 *
+	 * @return array<string, string> `method_id:instance_id` (or `method_id`) => carrier code.
+	 */
+	public static function pickup_methods(): array {
+		$map     = self::carrier_map();
+		$flagged = self::get( 'pickup_methods' );
+
+		if ( ! is_array( $flagged ) ) {
+			/**
+			 * Carriers whose mapped shipping methods are pickup point methods by default.
+			 *
+			 * @param list<string> $carriers Carrier codes.
+			 */
+			$carriers = (array) apply_filters( 'skladx_pickup_carriers', self::PICKUP_CARRIERS );
+
+			return array_filter( $map, static fn ( string $carrier ): bool => in_array( $carrier, $carriers, true ) );
+		}
+
+		return array_intersect_key( $map, array_flip( array_map( 'strval', $flagged ) ) );
+	}
+
+	/**
+	 * Carriers that have at least one pickup point shipping method.
+	 *
+	 * @return list<string>
+	 */
+	public static function pickup_carriers(): array {
+		return array_values( array_unique( array_values( self::pickup_methods() ) ) );
+	}
+
+	/**
+	 * Public Packeta widget API key ('' = use the built-in picker).
+	 */
+	public static function packeta_widget_key(): string {
+		return trim( (string) self::get( 'packeta_widget_key' ) );
 	}
 
 	public static function product_sync_enabled(): bool {

@@ -33,11 +33,13 @@ final class SettingsPage extends \WC_Settings_Page {
 		add_action( 'woocommerce_admin_field_skladx_connection', array( $this, 'render_connection' ) );
 		add_action( 'woocommerce_admin_field_skladx_webhook', array( $this, 'render_webhook' ) );
 		add_action( 'woocommerce_admin_field_skladx_tools', array( $this, 'render_tools' ) );
+		add_action( 'woocommerce_admin_field_skladx_pickup_methods', '__return_null' );
 
 		add_filter( 'woocommerce_admin_settings_sanitize_option_skladx_api_key', array( $this, 'sanitize_secret' ), 10, 3 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option_skladx_webhook_secret', array( $this, 'sanitize_secret' ), 10, 3 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option_skladx_carrier_map', array( $this, 'sanitize_carrier_map' ), 10, 3 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option_skladx_status_map', array( $this, 'sanitize_status_map' ), 10, 3 );
+		add_filter( 'woocommerce_admin_settings_sanitize_option_skladx_pickup_methods', array( $this, 'sanitize_pickup_methods' ), 10, 3 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option_skladx_api_base_url', array( $this, 'sanitize_url' ), 10, 3 );
 	}
 
@@ -127,12 +129,31 @@ final class SettingsPage extends \WC_Settings_Page {
 				'title' => __( 'Shipping methods → carriers', 'skladx-woocommerce' ),
 			),
 			array(
+				'type' => 'skladx_pickup_methods',
+				'id'   => 'skladx_pickup_methods',
+			),
+			array(
+				'type'    => 'checkbox',
+				'id'      => 'skladx_pickup_picker',
+				'title'   => __( 'Pickup point picker', 'skladx-woocommerce' ),
+				'desc'    => __( 'At checkout, show a "Choose pickup point" button for pickup point shipping methods (classic checkout and Checkout block). The point is required and checked with SkladX (exists, is active, accepts cash on delivery when paying by COD).', 'skladx-woocommerce' ),
+				'default' => 'yes',
+			),
+			array(
 				'type'        => 'text',
 				'id'          => 'skladx_pickup_point_meta_key',
 				'title'       => __( 'Pickup point meta key', 'skladx-woocommerce' ),
-				'desc'        => __( 'Order (or shipping line) meta field holding the pickup point id, e.g. from a Packeta widget.', 'skladx-woocommerce' ),
+				'desc'        => __( 'Order (or shipping line) meta field holding the pickup point id. The picker writes the chosen point here; if you use another pickup point plugin, enter the key it writes.', 'skladx-woocommerce' ),
 				'default'     => '_skladx_pickup_point_id',
 				'placeholder' => '_skladx_pickup_point_id',
+			),
+			array(
+				'type'              => 'text',
+				'id'                => 'skladx_packeta_widget_key',
+				'title'             => __( 'Packeta widget API key', 'skladx-woocommerce' ),
+				'desc'              => __( 'Optional. With your Packeta API key the official Packeta widget (map of all Packeta points) opens instead of the built-in picker for Packeta. The key is public — it is used in the browser.', 'skladx-woocommerce' ),
+				'default'           => '',
+				'custom_attributes' => array( 'spellcheck' => 'false', 'autocomplete' => 'off' ),
 			),
 			array(
 				'type'  => 'skladx_status_map',
@@ -160,7 +181,7 @@ final class SettingsPage extends \WC_Settings_Page {
 				'type'    => 'checkbox',
 				'id'      => 'skladx_stock_sync',
 				'title'   => __( 'Stock sync', 'skladx-woocommerce' ),
-				'desc'    => __( 'Set WooCommerce stock to the quantity available in the SkladX warehouse (SkladX is the source of truth). Only products with "Manage stock" enabled are updated.', 'skladx-woocommerce' ),
+				'desc'    => __( 'Set WooCommerce stock to the quantity available in the SkladX warehouse (on hand minus reserved; SkladX is the source of truth). Units of orders not yet sent to SkladX stay deducted. Only products with "Manage stock" enabled are updated. Turning it on takes over all stock levels once.', 'skladx-woocommerce' ),
 				'default' => 'no',
 			),
 			array( 'type' => 'skladx_tools' ),
@@ -271,6 +292,7 @@ final class SettingsPage extends \WC_Settings_Page {
 	 */
 	public function render_carrier_map( array $field ): void {
 		$map     = Settings::carrier_map();
+		$pickup  = Settings::pickup_methods();
 		$methods = $this->shipping_methods();
 		?>
 		<tr valign="top">
@@ -280,7 +302,7 @@ final class SettingsPage extends \WC_Settings_Page {
 					<p><?php esc_html_e( 'No shipping methods configured yet.', 'skladx-woocommerce' ); ?></p>
 				<?php else : ?>
 					<table class="widefat striped" style="max-width:720px">
-						<thead><tr><th><?php esc_html_e( 'Shipping method', 'skladx-woocommerce' ); ?></th><th><?php esc_html_e( 'SkladX carrier', 'skladx-woocommerce' ); ?></th></tr></thead>
+						<thead><tr><th><?php esc_html_e( 'Shipping method', 'skladx-woocommerce' ); ?></th><th><?php esc_html_e( 'SkladX carrier', 'skladx-woocommerce' ); ?></th><th><?php esc_html_e( 'Pickup point', 'skladx-woocommerce' ); ?></th></tr></thead>
 						<tbody>
 						<?php foreach ( $methods as $key => $label ) : ?>
 							<tr>
@@ -293,12 +315,16 @@ final class SettingsPage extends \WC_Settings_Page {
 										<?php endforeach; ?>
 									</select>
 								</td>
+								<td>
+									<input type="hidden" name="skladx_pickup_methods[]" value="" />
+									<label><input type="checkbox" name="skladx_pickup_methods[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( isset( $pickup[ $key ] ) ); ?> /> <?php esc_html_e( 'delivers to a pickup point', 'skladx-woocommerce' ); ?></label>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 						</tbody>
 					</table>
 				<?php endif; ?>
-				<p class="description"><?php esc_html_e( 'Sent as "carrier" with every order. For Packeta pickup points also set the pickup point meta key below.', 'skladx-woocommerce' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Sent as "carrier" with every order. Methods that deliver to a pickup point (Packeta by default) get the pickup point picker at checkout; the chosen point is sent as "pickup_point_id".', 'skladx-woocommerce' ); ?></p>
 			</td>
 		</tr>
 		<?php
@@ -322,6 +348,18 @@ final class SettingsPage extends \WC_Settings_Page {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Ticked "delivers to a pickup point" methods (rendered in the carrier map table).
+	 *
+	 * @param mixed                $value     Sanitized value.
+	 * @param array<string, mixed> $option    Field.
+	 * @param mixed                $raw_value Raw value.
+	 * @return list<string>
+	 */
+	public function sanitize_pickup_methods( $value, $option, $raw_value ): array {
+		return array_values( array_unique( array_filter( array_map( static fn ( $key ): string => sanitize_text_field( (string) $key ), (array) $raw_value ) ) ) );
 	}
 
 	/**
@@ -485,6 +523,9 @@ final class SettingsPage extends \WC_Settings_Page {
 			<th scope="row" class="titledesc"><?php esc_html_e( 'Tools', 'skladx-woocommerce' ); ?></th>
 			<td class="forminp">
 				<a class="button" href="<?php echo esc_url( Actions::url( 'skladx_sync_products' ) ); ?>"><?php esc_html_e( 'Sync all products', 'skladx-woocommerce' ); ?></a>
+				<?php if ( Settings::stock_sync_enabled() ) : ?>
+					<a class="button" href="<?php echo esc_url( Actions::url( 'skladx_pull_stock' ) ); ?>"><?php esc_html_e( 'Take over stock from SkladX now', 'skladx-woocommerce' ); ?></a>
+				<?php endif; ?>
 				<a class="button" href="<?php echo esc_url( Actions::url( 'skladx_poll_events' ) ); ?>"><?php esc_html_e( 'Fetch missed events now', 'skladx-woocommerce' ); ?></a>
 				<p class="description">
 					<?php

@@ -23,15 +23,20 @@ final class ProductSync {
 
 	public const HOOK       = 'skladx_sync_product';
 	public const BATCH_HOOK = 'skladx_sync_products_batch';
+	public const STOCK_HOOK = 'skladx_pull_stock';
 	public const GROUP      = 'skladx';
 	public const BATCH_SIZE = 25;
 
 	public const LAST_SYNC_META = '_skladx_product_synced_at';
 	public const ERROR_META     = '_skladx_product_error';
 	public const HASH_META      = '_skladx_product_hash';
+	public const STOCK_EVENT    = '_skladx_stock_event_id';
 
 	/** True while SkladX data is being written into WooCommerce (prevents echo syncs). */
 	private static bool $applying_remote = false;
+
+	/** @var array<int, int>|null Product id => units held by orders not in SkladX yet (per request). */
+	private static ?array $held = null;
 
 	public static function register(): void {
 		add_action( 'woocommerce_new_product', array( self::class, 'on_product_saved' ), 20, 1 );
@@ -40,6 +45,120 @@ final class ProductSync {
 		add_action( 'woocommerce_update_product_variation', array( self::class, 'on_product_saved' ), 20, 1 );
 		add_action( self::HOOK, array( self::class, 'sync' ), 10, 1 );
 		add_action( self::BATCH_HOOK, array( self::class, 'sync_batch' ), 10, 1 );
+		add_action( self::STOCK_HOOK, array( self::class, 'pull_stock' ), 10, 1 );
+		add_action( 'add_option_skladx_stock_sync', array( self::class, 'stock_sync_enabled' ), 10, 2 );
+		add_action( 'update_option_skladx_stock_sync', array( self::class, 'stock_sync_toggled' ), 10, 2 );
+	}
+
+	/**
+	 * Turning stock sync on takes over all SkladX stock levels once.
+	 *
+	 * @param mixed $old_value Previous value.
+	 * @param mixed $value     New value.
+	 */
+	public static function stock_sync_toggled( $old_value, $value ): void {
+		if ( 'yes' === $value && 'yes' !== $old_value ) {
+			self::queue_stock_pull();
+		}
+	}
+
+	/**
+	 * @param string $option Option name.
+	 * @param mixed  $value  Value.
+	 */
+	public static function stock_sync_enabled( $option, $value ): void {
+		self::stock_sync_toggled( 'no', $value );
+	}
+
+	/**
+	 * Queues a full stock pull from SkladX (GET /stock, all pages).
+	 */
+	public static function queue_stock_pull(): bool {
+		if ( ! Settings::is_configured() || ! function_exists( 'as_enqueue_async_action' ) || as_has_scheduled_action( self::STOCK_HOOK, null, self::GROUP ) ) {
+			return false;
+		}
+
+		as_enqueue_async_action( self::STOCK_HOOK, array( '' ), self::GROUP );
+
+		return true;
+	}
+
+	/**
+	 * Action Scheduler callback: one page of GET /stock.
+	 *
+	 * @param string $cursor Page cursor ('' for the first page).
+	 */
+	public static function pull_stock( $cursor = '' ): void {
+		if ( ! Settings::stock_sync_enabled() ) {
+			return;
+		}
+
+		try {
+			$page = Client::from_settings()->stock( '' !== (string) $cursor ? (string) $cursor : null );
+		} catch ( ApiException $exception ) {
+			Logger::error( 'Stock pull from SkladX failed: ' . $exception->summary() );
+
+			if ( $exception->is_retryable() ) {
+				as_schedule_single_action( time() + 300, self::STOCK_HOOK, array( (string) $cursor ), self::GROUP );
+			}
+
+			return;
+		}
+
+		$changed = 0;
+
+		foreach ( $page['data'] as $row ) {
+			if ( is_array( $row ) && is_scalar( $row['sku'] ?? null ) && '' !== (string) $row['sku'] && is_numeric( $row['available'] ?? null ) ) {
+				$changed += self::apply_stock( (string) $row['sku'], (int) $row['available'] ) ? 1 : 0;
+			}
+		}
+
+		$next = (string) ( $page['meta']['next_cursor'] ?? '' );
+
+		if ( ! empty( $page['meta']['has_more'] ) && '' !== $next ) {
+			as_enqueue_async_action( self::STOCK_HOOK, array( $next ), self::GROUP );
+		}
+
+		Logger::info( sprintf( 'Stock pull from SkladX: %d rows, %d products changed.', count( $page['data'] ), $changed ) );
+	}
+
+	/**
+	 * Units of a product that WooCommerce already took off stock for orders
+	 * SkladX does not have yet (e.g. bank transfer orders on hold, or orders
+	 * still in the export queue). SkladX `available` does not include them, so
+	 * they are subtracted — otherwise taking over the SkladX level would put
+	 * them back on sale.
+	 */
+	public static function held_quantity( int $product_id ): int {
+		if ( null === self::$held ) {
+			self::$held = array();
+
+			$orders = wc_get_orders(
+				array(
+					'limit'        => -1,
+					'type'         => 'shop_order',
+					'status'       => array( 'pending', 'on-hold', 'processing' ),
+					'date_created' => '>' . ( time() - 90 * DAY_IN_SECONDS ),
+				)
+			);
+
+			foreach ( $orders as $order ) {
+				if ( ! $order instanceof \WC_Order || OrderMeta::is_exported( $order ) ) {
+					continue;
+				}
+
+				foreach ( $order->get_items( 'line_item' ) as $item ) {
+					$reduced = $item instanceof \WC_Order_Item_Product ? (int) $item->get_meta( '_reduced_stock' ) : 0;
+
+					if ( $reduced > 0 ) {
+						$id                = (int) $item->get_variation_id() ?: (int) $item->get_product_id();
+						self::$held[ $id ] = ( self::$held[ $id ] ?? 0 ) + $reduced;
+					}
+				}
+			}
+		}
+
+		return self::$held[ $product_id ] ?? 0;
 	}
 
 	/**
@@ -185,9 +304,16 @@ final class ProductSync {
 	/**
 	 * Sets WooCommerce stock from SkladX (when stock sync is on).
 	 *
+	 * Event ids are time-ordered (ULID): an event older than the last one
+	 * applied to the product (webhook and polling may deliver out of order)
+	 * is skipped, so an old level never overwrites a newer one.
+	 *
+	 * @param string $sku       SKU.
+	 * @param int    $available SkladX `available` (on hand − reserved).
+	 * @param string $event_id  `evt_…` id of the event, '' when unknown.
 	 * @return bool Whether the stock changed.
 	 */
-	public static function apply_stock( string $sku, int $available ): bool {
+	public static function apply_stock( string $sku, int $available, string $event_id = '' ): bool {
 		$product_id = (int) wc_get_product_id_by_sku( $sku );
 		$product    = $product_id ? wc_get_product( $product_id ) : null;
 
@@ -195,7 +321,20 @@ final class ProductSync {
 			return false;
 		}
 
-		$available = max( 0, $available );
+		$last_event = (string) $product->get_meta( self::STOCK_EVENT );
+
+		if ( '' !== $event_id && '' !== $last_event && strcmp( $event_id, $last_event ) < 0 ) {
+			Logger::debug( sprintf( 'Stale stock event %s for %s ignored (last applied %s).', $event_id, $sku, $last_event ) );
+
+			return false;
+		}
+
+		if ( '' !== $event_id ) {
+			self::write_meta( $product, array( self::STOCK_EVENT => $event_id ) );
+		}
+
+		$held      = self::held_quantity( (int) $product->get_id() );
+		$available = max( 0, $available - $held );
 
 		if ( (int) $product->get_stock_quantity() === $available ) {
 			return false;
@@ -209,7 +348,7 @@ final class ProductSync {
 			self::$applying_remote = false;
 		}
 
-		Logger::info( sprintf( 'Stock of %s set to %d from SkladX.', $sku, $available ) );
+		Logger::info( sprintf( 'Stock of %s set to %d from SkladX%s.', $sku, $available, $held > 0 ? sprintf( ' (%d held by orders not in SkladX yet)', $held ) : '' ) );
 
 		return true;
 	}

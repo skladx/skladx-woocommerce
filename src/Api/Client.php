@@ -81,6 +81,44 @@ final class Client {
 	}
 
 	/**
+	 * GET /stock — one page of stock levels (`sku`, `on_hand`, `reserved`, `available`).
+	 *
+	 * @return array{data: list<array<string, mixed>>, meta: array<string, mixed>}
+	 */
+	public function stock( ?string $cursor = null, int $limit = 100 ): array {
+		$response = $this->request( 'GET', 'stock', null, array_filter( array( 'limit' => $limit, 'cursor' => $cursor ) ) );
+
+		return array(
+			'data' => (array) ( $response['data'] ?? array() ),
+			'meta' => (array) ( $response['meta'] ?? array() ),
+		);
+	}
+
+	/**
+	 * GET /pickup-points — search pickup points.
+	 *
+	 * @param array<string, scalar> $query carrier, country, q, near, radius_km, cod, limit, cursor.
+	 * @return array{data: list<array<string, mixed>>, meta: array<string, mixed>}
+	 */
+	public function pickup_points( array $query ): array {
+		$response = $this->request( 'GET', 'pickup-points', null, $query );
+
+		return array(
+			'data' => array_values( array_filter( (array) ( $response['data'] ?? array() ), 'is_array' ) ),
+			'meta' => (array) ( $response['meta'] ?? array() ),
+		);
+	}
+
+	/**
+	 * GET /pickup-points/{carrier}/{id}.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function pickup_point( string $carrier, string $id ): array {
+		return (array) ( $this->request( 'GET', 'pickup-points/' . rawurlencode( $carrier ) . '/' . rawurlencode( $id ) )['data'] ?? array() );
+	}
+
+	/**
 	 * @return array{data: list<array<string, mixed>>, meta: array<string, mixed>}
 	 */
 	public function events( ?string $after = null, int $limit = 100, ?string $cursor = null ): array {

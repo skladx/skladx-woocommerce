@@ -8,6 +8,7 @@
 namespace SkladX\WooCommerce\Admin;
 
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
+use SkladX\WooCommerce\Pickup\Checkout as PickupCheckout;
 use SkladX\WooCommerce\Settings;
 use SkladX\WooCommerce\Sync\OrderMeta;
 use SkladX\WooCommerce\Sync\StatusMapper;
@@ -55,7 +56,13 @@ final class OrderMetaBox {
 		$state     = (string) $order->get_meta( OrderMeta::EXPORT_STATE );
 		$error     = (string) $order->get_meta( OrderMeta::EXPORT_ERROR );
 
+		$pickup = PickupCheckout::for_order( $order );
+
 		if ( '' === $remote_id ) {
+			if ( null !== $pickup ) {
+				printf( '<p><strong>%1$s</strong> %2$s<br /><small>%3$s</small></p>', esc_html__( 'Pickup point:', 'skladx-woocommerce' ), esc_html( $pickup['name'] ), esc_html( $pickup['address'] ) );
+			}
+
 			$labels = array(
 				'queued'   => __( 'Queued for sending…', 'skladx-woocommerce' ),
 				'retrying' => __( 'Sending failed, will retry automatically.', 'skladx-woocommerce' ),
@@ -89,10 +96,23 @@ final class OrderMetaBox {
 			__( 'Tracking', 'skladx-woocommerce' ),
 			null === $tracking ? '—' : ( '' !== $tracking['url'] ? '<a href="' . esc_url( $tracking['url'] ) . '" target="_blank" rel="noopener">' . esc_html( $tracking['number'] ) . '</a>' : esc_html( $tracking['number'] ) )
 		);
+		if ( null !== $pickup ) {
+			self::row( __( 'Pickup point', 'skladx-woocommerce' ), esc_html( $pickup['name'] ) . '<br /><small>' . esc_html( $pickup['address'] ) . ( '' !== $pickup['id'] ? ' · <code>' . esc_html( $pickup['id'] ) . '</code>' : '' ) . '</small>' );
+		}
+
 		self::row( __( 'Last sync', 'skladx-woocommerce' ), $synced ? esc_html( wp_date( 'j. n. Y H:i:s', $synced ) ) : '—' );
 		echo '</tbody></table>';
 
 		echo '<p>';
+
+		if ( null !== $tracking && '' !== $tracking['url'] ) {
+			printf(
+				'<a class="button button-primary" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s <span class="dashicons dashicons-external" style="vertical-align:text-bottom;font-size:16px" aria-hidden="true"></span></a> ',
+				esc_url( $tracking['url'] ),
+				esc_html__( 'Track shipment', 'skladx-woocommerce' )
+			);
+		}
+
 		printf( '<a class="button" href="%s">%s</a> ', esc_url( Actions::url( 'skladx_order_refresh', $args ) ), esc_html__( 'Refresh', 'skladx-woocommerce' ) );
 
 		if ( StatusMapper::is_cancellable( $status ) ) {
