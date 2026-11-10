@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: SkladX for WooCommerce 0.2.0\n"
+"Project-Id-Version: SkladX for WooCommerce 0.3.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/skladx-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-10T11:01:06+00:00\n"
+"POT-Creation-Date: 2026-11-10T15:07:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: skladx-woocommerce\n"
@@ -53,92 +53,102 @@ msgstr ""
 msgid "Connection works."
 msgstr ""
 
+#. translators: %s: missing scopes
+#: src/Admin/Actions.php:75
+#, php-format
+msgid "For SkladX receipts the API key also needs: %s"
+msgstr ""
+
 #. translators: %s: error
-#: src/Admin/Actions.php:79
+#: src/Admin/Actions.php:86
 #, php-format
 msgid "Connection failed: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:99
+#: src/Admin/Actions.php:102
 msgid "SkladX did not return the webhook secret."
 msgstr ""
 
 #. translators: %s: webhook id
-#: src/Admin/Actions.php:114
+#: src/Admin/Actions.php:117
 #, php-format
 msgid "Webhook registered in SkladX (%s), signing secret saved."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:117
+#: src/Admin/Actions.php:120
 #, php-format
 msgid "Registering the webhook failed: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:127
+#: src/Admin/Actions.php:152
 msgid "All products with a SKU are being sent to SkladX in the background."
 msgstr ""
 
-#: src/Admin/Actions.php:136
+#: src/Admin/Actions.php:161
 msgid "Turn on stock sync first."
 msgstr ""
 
-#: src/Admin/Actions.php:138
+#: src/Admin/Actions.php:163
 msgid "Stock levels are being taken over from SkladX in the background."
 msgstr ""
 
-#: src/Admin/Actions.php:140
+#: src/Admin/Actions.php:165
 msgid "A stock sync is already running."
 msgstr ""
 
 #. translators: %d: number of events
-#: src/Admin/Actions.php:151
+#: src/Admin/Actions.php:176
 #, php-format
 msgid "%d missed event found."
 msgid_plural "%d missed events found."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/Actions.php:160
+#: src/Admin/Actions.php:185
 msgid "The order is being sent to SkladX."
 msgstr ""
 
-#: src/Admin/Actions.php:162
+#: src/Admin/Actions.php:187
 msgid "The order is already in SkladX or queued."
 msgstr ""
 
-#: src/Admin/Actions.php:174
+#: src/Admin/Actions.php:199
 msgid "SkladX data refreshed."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:177
+#: src/Admin/Actions.php:202
 #, php-format
 msgid "Refreshing from SkladX failed: %s"
 msgstr ""
 
 #. translators: %s: user name
-#: src/Admin/Actions.php:188
+#: src/Admin/Actions.php:213
+#: src/Inbound/Ajax.php:213
 #, php-format
 msgid "Cancelled in WooCommerce by %s"
 msgstr ""
 
-#: src/Admin/Actions.php:189
-#: src/Admin/Actions.php:191
+#: src/Admin/Actions.php:214
+#: src/Admin/Actions.php:216
 msgid "Order cancelled in SkladX."
 msgstr ""
 
 #. translators: %s: error
-#: src/Admin/Actions.php:194
+#: src/Admin/Actions.php:219
 #, php-format
 msgid "Cancelling in SkladX failed: %s"
 msgstr ""
 
-#: src/Admin/Actions.php:202
+#: src/Admin/Actions.php:227
+#: src/Inbound/AdminPage.php:70
+#: src/Inbound/Ajax.php:288
+#: src/Inbound/Ajax.php:428
 msgid "You are not allowed to do this."
 msgstr ""
 
-#: src/Admin/Actions.php:214
+#: src/Admin/Actions.php:239
 msgid "Order not found."
 msgstr ""
 
@@ -179,10 +189,15 @@ msgid "Send to SkladX"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:92
+#: src/Inbound/AdminPage.php:163
+#: src/Inbound/AdminPage.php:178
+#: src/Inbound/AdminPage.php:450
 msgid "Status"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:93
+#: src/Inbound/AdminPage.php:176
+#: src/Inbound/AdminPage.php:449
 msgid "Number"
 msgstr ""
 
@@ -212,6 +227,7 @@ msgid "Track shipment"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:116
+#: src/Inbound/AdminPage.php:446
 msgid "Refresh"
 msgstr ""
 
@@ -365,6 +381,7 @@ msgid "Saved: %s"
 msgstr ""
 
 #: src/Admin/SettingsPage.php:230
+#: src/Inbound/AdminPage.php:418
 msgid "Remove"
 msgstr ""
 
@@ -574,8 +591,668 @@ msgstr ""
 msgid "Received events (last 30 days): %1$d processed, %2$d ignored, %3$d failed, %4$d pending. Missed webhooks are fetched automatically every 10 minutes."
 msgstr ""
 
-#: src/Api/Client.php:159
+#: src/Api/Client.php:222
+msgid "The uploaded file cannot be read."
+msgstr ""
+
+#: src/Api/Client.php:288
 msgid "SkladX API URL or API key is not configured."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:38
+#: src/Inbound/AdminPage.php:39
+#: src/Inbound/AdminPage.php:76
+#: src/Inbound/AdminPage.php:113
+#: src/Inbound/AdminPage.php:306
+msgid "SkladX receipts"
+msgstr ""
+
+#. translators: %s: settings page link
+#: src/Inbound/AdminPage.php:80
+#, php-format
+msgid "SkladX is not configured. Fill in the API URL and key in %s."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:81
+msgid "WooCommerce → Settings → SkladX"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:141
+msgid "Receipts will appear here once your SkladX warehouse turns on inbound receipts in the API."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:146
+#: src/Inbound/AdminPage.php:387
+msgid "New receipt"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:157
+msgid "Showing the last known state of your receipts."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:165
+msgid "All statuses"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:170
+msgid "Filter"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:177
+#: src/Inbound/AdminPage.php:395
+#: src/Inbound/ValidationException.php:167
+msgid "Name"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:179
+msgid "Expected delivery"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:180
+msgid "Carrier / tracking"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:181
+msgid "Pieces"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:182
+#: src/Inbound/AdminPage.php:458
+msgctxt "pieces"
+msgid "Received"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:183
+msgid "Actions"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:188
+msgid "No receipts yet. Create one to announce goods you are sending to the warehouse."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:203
+msgid "« First page"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:219
+msgid "Next page »"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:271
+msgid "Edit"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:271
+msgid "Open"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:273
+msgid "Label"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:289
+msgid "← All receipts"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:295
+#: src/Inbound/Ajax.php:297
+#: src/Inbound/Ajax.php:389
+msgid "Receipt not found."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:311
+msgid "Receipt not found in SkladX."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:323
+#: src/Pickup/Checkout.php:113
+msgid "Loading…"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:324
+msgid "The receipt editor needs JavaScript."
+msgstr ""
+
+#. translators: %s: receipt number
+#: src/Inbound/AdminPage.php:389
+#, php-format
+msgid "Receipt %s"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:390
+msgid "Detail"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:391
+msgid "Edit receipt"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:392
+msgid "Bulk add"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:393
+msgid "Scan EAN"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:394
+msgid "Attachments"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:396
+msgid "e.g. Autumn collection – delivery 1"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:397
+#: src/Inbound/ValidationException.php:169
+msgid "Expected delivery date"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:398
+msgid "Via carrier"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:399
+msgid "— Choose —"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:400
+#: src/Inbound/ValidationException.php:173
+msgid "Carrier name"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:401
+#: src/Inbound/ValidationException.php:175
+msgid "Tracking number"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:402
+msgid "Reference (optional)"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:403
+#: src/Inbound/ValidationException.php:177
+msgid "Reference"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:404
+msgid "e.g. your purchase order or supplier invoice number."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:405
+msgid "Blind receipt"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:406
+msgid "The warehouse counts whatever arrives; the items below are only a guide."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:407
+msgid "Note for the warehouse"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:408
+msgid "Items"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:409
+#: src/Inbound/ValidationException.php:183
+msgid "Product"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:410
+msgid "Search by name, SKU or EAN…"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:411
+msgid "SKU"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:412
+msgid "EAN"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:413
+#: src/Inbound/ValidationException.php:187
+msgid "Quantity"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:414
+msgid "pcs"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:415
+#: src/Inbound/ValidationException.php:189
+msgid "Batch"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:416
+#: src/Inbound/ValidationException.php:191
+msgid "Expiry"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:417
+msgid "Add item"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:419
+msgid "No items yet. Search for a product above, paste lines in Bulk add, or scan EANs."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:420
+msgid "No product with a SKU matches."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:421
+msgid "Searching…"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:422
+msgid "Choose a product from the list first."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:423
+msgid "Not in SkladX yet"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:424
+msgid "SkladX does not know this product yet. Sync it first, otherwise the receipt will be rejected."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:425
+msgid "Not found in the shop"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:426
+msgid "Last sync failed:"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:427
+msgid "Sync to SkladX"
+msgstr ""
+
+#. translators: %d: number of products
+#: src/Inbound/AdminPage.php:429
+#, php-format
+msgid "Sync to SkladX (%d)"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:430
+msgid "Products synced to SkladX."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:431
+msgid "Syncing…"
+msgstr ""
+
+#. translators: 1: number of lines, 2: number of pieces
+#: src/Inbound/AdminPage.php:433
+#, php-format
+msgid "%1$d lines, %2$d pieces"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:434
+msgid "Save draft"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:435
+msgid "Saving…"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:436
+msgid "Draft saved in SkladX."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:437
+msgid "Send to warehouse"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:438
+msgid "Send the receipt to the warehouse? It can no longer be edited afterwards."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:439
+msgid "The receipt was sent to the warehouse. Print the label and stick it on the parcel."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:440
+msgid "Cancel receipt"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:441
+msgid "Cancel this receipt in SkladX?"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:442
+msgid "The receipt was cancelled."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:443
+msgid "Print label"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:444
+msgid "Label (ZPL)"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:445
+msgid "Stick the label with the receipt code on the parcel so the warehouse can match it."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:447
+msgid "You have unsaved changes."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:448
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:451
+#: src/Inbound/ValidationException.php:181
+msgid "Warehouse"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:452
+msgid "Created"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:453
+msgid "Sent to warehouse"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:454
+msgid "Received on"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:455
+msgid "Yes"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:456
+msgid "No"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:457
+msgid "Expected"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:459
+msgid "Difference"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:460
+msgid "Total"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:461
+msgid "The warehouse received a different quantity than announced. See the differences below."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:462
+msgid "Everything was received as announced."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:463
+msgid "One item per line: SKU or EAN; quantity; batch (optional); expiry (optional). Columns can be separated by semicolon, tab (paste from a spreadsheet) or comma. Expiry: YYYY-MM-DD, DD.MM.YYYY or MM/YYYY."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:465
+msgid "Add lines"
+msgstr ""
+
+#. translators: %d: number of lines
+#: src/Inbound/AdminPage.php:467
+#, php-format
+msgid "%d lines added to the receipt."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:468
+msgid "These lines were not added:"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:469
+msgid "Paste at least one line."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:470
+msgid "Click into the field and scan EAN codes with a USB scanner (or type a SKU/EAN and press Enter). Every scan adds the quantity to the line with the same product, batch and expiry."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:471
+msgid "Scan EAN or SKU"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:472
+msgid "Pieces per scan"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:473
+msgid "Batch for scanned items"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:474
+msgid "Expiry for scanned items"
+msgstr ""
+
+#. translators: 1: product name, 2: quantity on the line
+#: src/Inbound/AdminPage.php:476
+#, php-format
+msgid "%1$s – now %2$d pcs"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:477
+msgid "Scanned items are added to the receipt. Save the draft when you are done."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:478
+msgid "Attach the delivery note or photos of the shipment (PDF, JPG, PNG, WebP, up to 10 MB each)."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:479
+msgid "Save the draft first, then you can attach files."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:480
+msgid "Upload"
+msgstr ""
+
+#: src/Inbound/AdminPage.php:481
+msgid "Uploading…"
+msgstr ""
+
+#. translators: %s: file name
+#: src/Inbound/AdminPage.php:483
+#, php-format
+msgid "%s uploaded to SkladX."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:484
+msgid "The file is larger than 10 MB."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:485
+msgid "No attachments yet."
+msgstr ""
+
+#: src/Inbound/AdminPage.php:486
+msgid "The receipt has been sent to the warehouse and can no longer be edited."
+msgstr ""
+
+#: src/Inbound/Ajax.php:148
+msgid "Please fix the highlighted fields."
+msgstr ""
+
+#: src/Inbound/Ajax.php:195
+msgid "The receipt cannot be sent yet."
+msgstr ""
+
+#: src/Inbound/Ajax.php:233
+msgid "The file was not uploaded."
+msgstr ""
+
+#. translators: %s: maximum size, e.g. 10 MB
+#: src/Inbound/Ajax.php:238
+#, php-format
+msgid "The file is larger than %s."
+msgstr ""
+
+#: src/Inbound/Ajax.php:245
+msgid "Only PDF, JPG, PNG and WebP files can be attached."
+msgstr ""
+
+#: src/Inbound/Ajax.php:303
+msgid "Receipt label"
+msgstr ""
+
+#. translators: 1: receipt number (link), 2: received pieces, 3: expected pieces
+#: src/Inbound/Receipts.php:124
+#, php-format
+msgid "Receipt %1$s was received with differences: %2$d of %3$d pieces."
+msgstr ""
+
+#. translators: 1: receipt number (link), 2: new status
+#: src/Inbound/Receipts.php:128
+#, php-format
+msgid "Receipt %1$s: %2$s."
+msgstr ""
+
+#: src/Inbound/Receipts.php:153
+msgctxt "Receipt status"
+msgid "Draft"
+msgstr ""
+
+#: src/Inbound/Receipts.php:154
+msgctxt "Receipt status"
+msgid "Awaiting receipt"
+msgstr ""
+
+#: src/Inbound/Receipts.php:155
+msgctxt "Receipt status"
+msgid "In transit"
+msgstr ""
+
+#: src/Inbound/Receipts.php:156
+msgctxt "Receipt status"
+msgid "Arrived at warehouse"
+msgstr ""
+
+#: src/Inbound/Receipts.php:157
+msgctxt "Receipt status"
+msgid "Receiving"
+msgstr ""
+
+#: src/Inbound/Receipts.php:158
+msgctxt "Receipt status"
+msgid "Received"
+msgstr ""
+
+#: src/Inbound/Receipts.php:159
+msgctxt "Receipt status"
+msgid "Cancelled"
+msgstr ""
+
+#: src/Inbound/Receipts.php:174
+msgid "Slovak Post"
+msgstr ""
+
+#: src/Inbound/Receipts.php:184
+msgid "In person to the warehouse"
+msgstr ""
+
+#: src/Inbound/Receipts.php:185
+msgid "Other"
+msgstr ""
+
+#: src/Inbound/Receipts.php:212
+msgid "The SkladX API key is missing the scopes inbound:read and inbound:write. Issue a new key with these scopes."
+msgstr ""
+
+#: src/Inbound/Receipts.php:216
+msgid "SkladX is not configured. Fill in the API URL and key in WooCommerce → Settings → SkladX."
+msgstr ""
+
+#: src/Inbound/Receipts.php:223
+msgid "SkladX does not support this module yet."
+msgstr ""
+
+#: src/Inbound/ValidationException.php:171
+msgid "Carrier"
+msgstr ""
+
+#: src/Inbound/ValidationException.php:179
+msgid "Note"
+msgstr ""
+
+#: src/Inbound/ValidationException.php:185
+msgid "SKU / EAN"
+msgstr ""
+
+#. translators: 1: line number, 2: error message
+#: src/Inbound/ValidationException.php:217
+#, php-format
+msgid "Line %1$d: %2$s"
+msgstr ""
+
+#. translators: %s: field name
+#: src/Inbound/ValidationException.php:219
+#, php-format
+msgid "%s is required."
+msgstr ""
+
+#. translators: 1: field name, 2: maximum number of characters
+#: src/Inbound/ValidationException.php:221
+#, php-format
+msgid "%1$s can have at most %2$d characters."
+msgstr ""
+
+#. translators: 1: field name, 2: entered value
+#: src/Inbound/ValidationException.php:223
+#, php-format
+msgid "%1$s \"%2$s\" is not a valid date (use YYYY-MM-DD or DD.MM.YYYY)."
+msgstr ""
+
+#: src/Inbound/ValidationException.php:224
+msgid "Choose a carrier from the list."
+msgstr ""
+
+#: src/Inbound/ValidationException.php:225
+msgid "The tracking number may only contain letters, digits, spaces, dashes and slashes."
+msgstr ""
+
+#. translators: %s: entered value
+#: src/Inbound/ValidationException.php:227
+#, php-format
+msgid "Quantity \"%s\" is not a whole number."
+msgstr ""
+
+#: src/Inbound/ValidationException.php:228
+msgid "Quantity must be greater than 0."
+msgstr ""
+
+#. translators: %d: maximum quantity
+#: src/Inbound/ValidationException.php:230
+#, php-format
+msgid "Quantity can be at most %d."
+msgstr ""
+
+#: src/Inbound/ValidationException.php:231
+msgid "Too many columns. Use: code;quantity[;batch;expiry]."
+msgstr ""
+
+#. translators: %d: maximum number of lines
+#: src/Inbound/ValidationException.php:233
+#, php-format
+msgid "At most %d lines can be added at once."
+msgstr ""
+
+#: src/Inbound/ValidationException.php:234
+msgid "Add at least one item."
+msgstr ""
+
+#. translators: %s: SKU or EAN
+#: src/Inbound/ValidationException.php:236
+#, php-format
+msgid "No product with SKU or EAN \"%s\" (products without a SKU cannot be received)."
 msgstr ""
 
 #: src/Pickup/Checkout.php:104
@@ -609,10 +1286,6 @@ msgstr ""
 
 #: src/Pickup/Checkout.php:112
 msgid "Close"
-msgstr ""
-
-#: src/Pickup/Checkout.php:113
-msgid "Loading…"
 msgstr ""
 
 #: src/Pickup/Checkout.php:114
@@ -766,22 +1439,22 @@ msgstr ""
 msgid "Too many searches, please wait a moment."
 msgstr ""
 
-#: src/Plugin.php:77
-#: src/Plugin.php:101
-#: src/Plugin.php:105
+#: src/Plugin.php:79
+#: src/Plugin.php:103
+#: src/Plugin.php:107
 msgctxt "Order status"
 msgid "Shipped (SkladX)"
 msgstr ""
 
 #. translators: %s: number of orders
-#: src/Plugin.php:83
+#: src/Plugin.php:85
 #, php-format
 msgid "Shipped (SkladX) <span class=\"count\">(%s)</span>"
 msgid_plural "Shipped (SkladX) <span class=\"count\">(%s)</span>"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Plugin.php:136
+#: src/Plugin.php:138
 msgid "Settings"
 msgstr ""
 
@@ -857,13 +1530,13 @@ msgstr ""
 msgid "Product %1$s could not be synced to SkladX: %2$s"
 msgstr ""
 
-#: src/Sync/Tracking.php:75
-#: src/Sync/Tracking.php:105
+#: src/Sync/Tracking.php:82
+#: src/Sync/Tracking.php:112
 msgid "Shipment tracking"
 msgstr ""
 
-#: src/Sync/Tracking.php:76
-#: src/Sync/Tracking.php:100
-#: src/Sync/Tracking.php:105
+#: src/Sync/Tracking.php:83
+#: src/Sync/Tracking.php:107
+#: src/Sync/Tracking.php:112
 msgid "Tracking number:"
 msgstr ""

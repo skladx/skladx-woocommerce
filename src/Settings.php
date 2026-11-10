@@ -36,7 +36,14 @@ final class Settings {
 		'stock.changed',
 		'product.created',
 		'product.updated',
+		'inbound.announced',
+		'inbound.arrived',
+		'inbound.received',
+		'inbound.cancelled',
 	);
+
+	/** Events SkladX versions without inbound receipts may reject (registration retries without them). */
+	public const OPTIONAL_WEBHOOK_EVENTS = array( 'inbound.announced', 'inbound.arrived', 'inbound.received', 'inbound.cancelled' );
 
 	/**
 	 * Default value of every option (without the prefix).

@@ -12,6 +12,7 @@ use SkladX\WooCommerce\Admin\Notices;
 use SkladX\WooCommerce\Admin\OrderMetaBox;
 use SkladX\WooCommerce\Admin\ProductFields;
 use SkladX\WooCommerce\Admin\SettingsPage;
+use SkladX\WooCommerce\Inbound\Receipts;
 use SkladX\WooCommerce\Pickup\Checkout as PickupCheckout;
 use SkladX\WooCommerce\Sync\AddressWatcher;
 use SkladX\WooCommerce\Sync\OrderExporter;
@@ -57,6 +58,7 @@ final class Plugin {
 		WebhookController::register();
 		EventProcessor::register();
 		EventPoller::register();
+		Receipts::register();
 
 		if ( is_admin() ) {
 			Notices::register();

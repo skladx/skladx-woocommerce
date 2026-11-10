@@ -6,7 +6,8 @@ Connects a WooCommerce shop with the **SkladX** fulfilment warehouse:
 - pickup point picker at checkout (classic checkout and Checkout block) for Packeta and other pickup carriers, with points from SkladX,
 - syncs products (SKU, name, EAN, weight, dimensions, price) and optionally takes stock levels from SkladX,
 - receives order status and tracking updates via signed webhooks (HMAC-SHA256) and a polling fallback,
-- shows a SkladX box on the order screen (status, number, tracking with a *Track shipment* button, pickup point, last sync, Send/Resend, Refresh, Cancel in SkladX).
+- shows a SkladX box on the order screen (status, number, tracking with a *Track shipment* button, pickup point, last sync, Send/Resend, Refresh, Cancel in SkladX),
+- **receipts** (*WooCommerce → SkladX receipts*): announce goods you send to the warehouse — header, items with batch and expiry, bulk paste, EAN scanning, attachments, label for the parcel, received quantities and differences.
 
 Requirements: WordPress 6.4+, WooCommerce 8.2+, PHP 8.1+. Compatible with HPOS (custom order tables) and Cart/Checkout blocks. No runtime Composer dependencies.
 
@@ -25,7 +26,7 @@ Requirements: WordPress 6.4+, WooCommerce 8.2+, PHP 8.1+. Compatible with HPOS (
 | Setting | Notes |
 | --- | --- |
 | API base URL | Your SkladX URL including `/api/v1`, e.g. `https://app.example/api/v1`. |
-| API key | From the SkladX client portal (*Integrations → API keys*). `skx_test_…` = sandbox, `skx_live_…` = production. Required scopes: `orders:read`, `orders:write`, `products:write`, `events:read`, `webhooks:write`; `pickup_points:read` for the pickup point picker, `stock:read` for taking over stock levels (`webhooks:read` optional). The key is stored in the options table, never printed back into the page and never logged. |
+| API key | From the SkladX client portal (*Integrations → API keys*). `skx_test_…` = sandbox, `skx_live_…` = production. Required scopes: `orders:read`, `orders:write`, `products:write`, `events:read`, `webhooks:write`; `pickup_points:read` for the pickup point picker, `stock:read` for taking over stock levels, `inbound:read` + `inbound:write` for receipts (`webhooks:read` optional). The key is stored in the options table, never printed back into the page and never logged. |
 | Test connection | Calls `GET /ping` and shows client, environment and scopes; warns about missing scopes. |
 | Webhook | *Register webhook in SkladX* calls `POST /webhooks` and stores the signing secret. To do it manually, copy the endpoint URL (`https://your-shop/wp-json/skladx/v1/webhook`) into the SkladX portal and paste the `whsec_…` secret into *Webhook signing secret*. |
 | Send orders in status | Default *Processing*. An order is sent once. |
@@ -56,6 +57,21 @@ Works in the classic checkout and in the Checkout block (no build step, no extra
 3. The choice is saved via the Store API (`POST /wc/store/v1/cart/extensions`, namespace `skladx-pickup`), verified with SkladX (`GET /pickup-points/{carrier}/{id}`) and kept in the WooCommerce session.
 4. Placing the order validates again on the server: a point must be chosen, belong to the carrier, be active, and accept COD when a COD gateway is used. The id is stored in the pickup point meta key; `_skladx_pickup_point_carrier`, `_skladx_pickup_point_name`, `_skladx_pickup_point_address` and `_skladx_pickup_point` (full point) are stored for display on the order screen, the thank-you/My account page and in emails. The id is sent to SkladX as `pickup_point_id`.
 
+### Receipts (WooCommerce → SkladX receipts)
+
+Announce stock you are sending to the warehouse (a stock receipt / advice). SkladX is the source of truth — nothing is stored in WordPress except a small status cache for notices. Capability `manage_woocommerce`; every call goes through `admin-ajax.php` / `admin-post.php` with a nonce, the API key never reaches the browser.
+
+- **List:** receipts from `GET /inbound-receipts` with status badges (Draft, Awaiting receipt, In transit, Arrived at warehouse, Receiving, Received, Cancelled), expected date, carrier and tracking link, announced/received pieces with difference, status filter, cursor pagination (*Next page*). If SkladX cannot be reached, the last known statuses are shown. If the endpoint returns 404 the screen says *SkladX tento modul zatiaľ nepodporuje* (the module works as soon as SkladX supports it).
+- **New / edit receipt** (tabs *Detail*, *Edit receipt*, *Bulk add*, *Scan EAN*, *Attachments*):
+  - header: *Name*, *Expected delivery date*, *Via carrier* (the plugin's carriers + *In person to the warehouse* = `personal` + *Other* with a free-text name), *Tracking number*, *Reference*, *Blind receipt*, note;
+  - items: product autocomplete over WooCommerce products by name, SKU or EAN (only products with a SKU; variations are listed, not parents), quantity in pieces, batch, expiry; the same product can have several lines with different batches/expiries (identical lines are merged). Products not yet synced to SkladX are flagged with a *Sync to SkladX* button;
+  - *Bulk add*: paste lines `code;quantity[;batch[;expiry]]` (code = SKU or EAN; `;`, tab or `,` as separator; header line and `#` comments skipped; expiry `YYYY-MM-DD`, `DD.MM.YYYY`, `MM/YYYY` = end of month). Invalid lines are reported with their line number, valid ones are added;
+  - *Scan EAN*: a USB scanner works as a keyboard — every Enter adds pieces (default 1, optional batch/expiry for the scanned goods) to the matching line, with a beep;
+  - *Attachments*: delivery note PDF or photos (PDF/JPG/PNG/WebP, max 10 MB) → `POST /inbound-receipts/{id}/attachments` (multipart, field `file`).
+- **Flow:** *Save draft* = `POST /inbound-receipts` (draft, `Idempotency-Key: wc:<host>:inbound:<uuid>` per form) or `PUT /inbound-receipts/{id}` (only drafts); *Send to warehouse* = `POST …/{id}/announce` (status *Awaiting receipt*); *Cancel receipt* = `POST …/{id}/cancel` while nothing has been received; *Print label* = `GET …/{id}/label` (PDF opened in a new tab; ZPL download in Detail). After the warehouse receives the goods, Detail shows received quantities and differences per line.
+- **Status updates:** webhooks `inbound.announced`, `inbound.arrived`, `inbound.received`, `inbound.cancelled` (also picked up by the `GET /events` polling) update the cache and show an admin notice once per status change (a warning when received with differences). Every 30 minutes open receipts are re-read as a fallback (`skladx_inbound_refresh`). Re-register the webhook after updating so it subscribes to the `inbound.*` events (older SkladX versions that reject them get a webhook without them).
+- Payload: `{name, reference, expected_at, carrier, tracking_number, is_blind, note, warehouse_code, items: [{sku, quantity, batch, expires_at}]}`; filter `skladx_inbound_payload`.
+
 ### Webhook
 
 `POST /wp-json/skladx/v1/webhook`
@@ -64,7 +80,7 @@ Works in the classic checkout and in the Checkout block (no build step, no extra
 2. Stores the event in `wp_skladx_events` keyed by `X-SkladX-Event-Id` (atomic dedupe; duplicates answer `200 {"duplicate":true}`).
 3. Answers `200` immediately; processing runs in Action Scheduler (`skladx_process_event`).
 
-Handled events: `order.status_changed`, `order.shipped`, `order.delivered`, `order.delivery_failed`, `order.cancelled`, `order.returned`, `shipment.tracking_updated` (status, mapping, notes, tracking), `stock.changed`, `product.created`, `product.updated` (stock, if enabled), `ping`. Stale events (older `status_changed_at`) are ignored. A new tracking number is added as a **customer note** (sends the "Customer note" email) and shown on the order page, in My account, in WooCommerce emails and in the admin SkladX box (*Track shipment* button). If SkladX sends no tracking URL, the public tracking page of the carrier is used (Packeta, DPD, GLS, Slovenská pošta).
+Handled events: `order.status_changed`, `order.shipped`, `order.delivered`, `order.delivery_failed`, `order.cancelled`, `order.returned`, `shipment.tracking_updated` (status, mapping, notes, tracking), `stock.changed`, `product.created`, `product.updated` (stock, if enabled), `inbound.*` (receipts, see above), `ping`. Stale events (older `status_changed_at`) are ignored. A new tracking number is added as a **customer note** (sends the "Customer note" email) and shown on the order page, in My account, in WooCommerce emails and in the admin SkladX box (*Track shipment* button). If SkladX sends no tracking URL, the public tracking page of the carrier is used (Packeta, DPD, GLS, Slovenská pošta).
 
 **Polling fallback:** every 10 minutes `GET /events?after=<last evt_…>` (all pages, processed oldest first). Events the webhook missed go through the same inbox and dedupe. *Fetch missed events now* runs it on demand. The first run only remembers the newest event (no backfill). Changing the API key or URL resets the cursor.
 
@@ -85,13 +101,13 @@ Deleting the plugin removes all `skladx_*` options, the `wp_skladx_events` table
 
 ```bash
 composer install      # dev only: PHPUnit
-composer test         # unit tests: signature, payload mapping, status mapping, redaction, pickup points (proxy query, cache, validation)
+composer test         # unit tests: signature, payload mapping, status mapping, redaction, pickup points, receipts (payload, validation, bulk paste, webhook handling)
 wp i18n make-pot . languages/skladx-woocommerce.pot --exclude=vendor,tests --skip-js
 wp i18n update-po languages/skladx-woocommerce.pot languages/skladx-woocommerce-sk_SK.po
 msgfmt -o languages/skladx-woocommerce-sk_SK.mo languages/skladx-woocommerce-sk_SK.po
 ```
 
-Source strings are English; Slovak translation is in `languages/skladx-woocommerce-sk_SK.po`. Texts of the checkout scripts are passed from PHP (`skladxPickupConfig.i18n`), so no JSON translation files are needed.
+Source strings are English; Slovak translation is in `languages/skladx-woocommerce-sk_SK.po`. Texts of the checkout and receipt scripts are passed from PHP (`skladxPickupConfig.i18n`, `skladxInbound.i18n`), so no JSON translation files are needed.
 
 ---
 
@@ -111,7 +127,7 @@ Plugin prepojí WooCommerce so skladom **SkladX**: odosiela objednávky, synchro
 
 - **Základná URL API** – adresa SkladX vrátane `/api/v1`.
 - **API kľúč** – z klientskeho portálu SkladX (*Integrácie → API kľúče*). `skx_test_…` = sandbox, `skx_live_…` = produkcia. Oprávnenia: `orders:read`, `orders:write`, `products:write`, `events:read`, `webhooks:write`. Kľúč sa nikdy nezobrazí ani nezapíše do logu.
-- **Otestovať pripojenie** – `GET /ping`, zobrazí klienta, prostredie a oprávnenia.
+- **Otestovať pripojenie** – `GET /ping`, zobrazí klienta, prostredie a oprávnenia (upozorní aj na chýbajúce `inbound:read`/`inbound:write` pre príjemky).
 - **Webhook** – tlačidlo *Zaregistrovať webhook v SkladX* ho vytvorí cez API a uloží podpisový kľúč. Manuálne: URL `https://vas-obchod/wp-json/skladx/v1/webhook` vložte do portálu SkladX a kľúč `whsec_…` do poľa *Podpisový kľúč webhooku*.
 - **Odosielať objednávky v stave** – predvolene *Spracováva sa*; objednávka sa odošle raz.
 - **Platobné metódy na dobierku** – suma objednávky sa pošle ako `cod_cents`.
@@ -123,6 +139,18 @@ Plugin prepojí WooCommerce so skladom **SkladX**: odosiela objednávky, synchro
 - **Synchronizácia produktov** – pri uložení produktu a tlačidlom *Synchronizovať všetky produkty* (upsert podľa SKU; EAN z poľa *EAN pre SkladX* alebo GTIN).
 - **Synchronizácia zásob** – predvolene vypnutá; po zapnutí je zdrojom pravdy SkladX (dostupné = na sklade − rezervované). Pri zapnutí a tlačidlom *Prevziať zásoby zo SkladX teraz* sa prevezmú všetky stavy. Kusy z objednávok, ktoré ešte nie sú v SkladX, zostanú odpočítané.
 - **Ladiaci log** – WooCommerce → Stav → Logy, zdroj `skladx`, tajné údaje maskované.
+
+### Príjemky (WooCommerce → Príjemky SkladX)
+
+Ohlásenie tovaru, ktorý posielate do skladu. Zdrojom pravdy je SkladX – vo WordPresse sa ukladá len malá cache stavov pre upozornenia. Prístup s oprávnením `manage_woocommerce`, všetko ide cez admin-ajax s nonce, API kľúč sa do prehliadača nedostane. API kľúč potrebuje oprávnenia `inbound:read` a `inbound:write`.
+
+- **Zoznam** príjemiek so stavmi (Koncept, Čaká na príjem, Na ceste, Prevzatá na sklade, Prijíma sa, Prijatá, Zrušená), dátumom dodania, dopravcom a odkazom na tracking, ohlásenými a prijatými kusmi s rozdielom, filtrom stavu a stránkovaním. Ak SkladX endpoint nepozná (404), zobrazí sa *SkladX tento modul zatiaľ nepodporuje*.
+- **Nová príjemka / úprava** (záložky *Detail*, *Upraviť príjemku*, *Hromadné pridanie*, *Skenovanie EAN*, *Prílohy*): Názov, Predpokladaný dátum dodania, Cez dopravcu (dopravcovia pluginu + *Osobne na sklad* + *Iný*), Tracking, Referencia, Bianco príjemka, poznámka; položky s vyhľadávaním produktu podľa názvu, SKU alebo EAN (len produkty so SKU), počet kusov, šarža, expirácia, viac riadkov toho istého produktu. Produkty, ktoré ešte nie sú v SkladX, majú tlačidlo *Synchronizovať do SkladX*.
+- **Hromadné pridanie:** riadky `kód;počet[;šarža[;expirácia]]` (kód = SKU alebo EAN, oddeľovač `;`, tabulátor alebo `,`, expirácia `RRRR-MM-DD`, `DD.MM.RRRR` alebo `MM/RRRR`); chybné riadky sa vypíšu s číslom riadku.
+- **Skenovanie EAN:** USB skener funguje ako klávesnica – každý Enter pripočíta kusy k riadku produktu.
+- **Prílohy:** dodací list alebo fotky (PDF, JPG, PNG, WebP do 10 MB).
+- *Uložiť koncept* vytvorí/upraví koncept v SkladX, *Odoslať do skladu* ho ohlási (stav *Čaká na príjem*), *Tlačiť štítok* otvorí štítok príjemky na nalepenie na zásielku. Po prijatí sa v detaile zobrazia prijaté počty a rozdiely.
+- Webhooky `inbound.*` (aj záložné načítanie udalostí a obnova každých 30 minút) aktualizujú stav a zobrazia upozornenie v administrácii. Po aktualizácii pluginu webhook zaregistrujte znova.
 
 ### Webhook a záložné načítanie
 
@@ -141,6 +169,14 @@ Webhook overuje HMAC podpis (tolerancia 300 s), deduplikuje podľa `X-SkladX-Eve
 Zmaže nastavenia `skladx_*`, tabuľku `wp_skladx_events` a naplánované akcie. Meta údaje objednávok (`_skladx_*`) zostávajú.
 
 ## Changelog
+
+### 0.3.0
+
+- New *WooCommerce → SkladX receipts* screen: list of inbound receipts (status badges, tracking link, received quantities and differences, status filter, cursor pagination) and an editor modelled on stock receipts in fulfilment portals — header (name, expected delivery date, carrier incl. *In person* / *Other*, tracking, reference, blind receipt), items with product autocomplete by name/SKU/EAN, batch and expiry (several lines per product), bulk paste with per-line errors, USB EAN scanning, attachments, label printing, *Send to warehouse*, cancel.
+- SkladX stays the source of truth (draft via `POST`, edits via `PUT`, `announce`, `cancel`, `attachments`, `label`); all calls go through a nonce-protected admin-ajax proxy. Feature detection: without the SkladX endpoint the screen says the module is not supported yet.
+- Webhooks/polling handle `inbound.announced`, `inbound.arrived`, `inbound.received`, `inbound.cancelled` (status cache + admin notice, warning on differences); periodic refresh of open receipts as a fallback. Webhook registration retries without `inbound.*` on SkladX versions that reject them. *Test connection* hints at missing `inbound:*` scopes.
+- Client: raw/multipart requests and non-JSON responses (labels).
+- Slovak translation of all new texts; unit tests for receipt payload, validation, bulk paste parsing and event handling.
 
 ### 0.2.0
 

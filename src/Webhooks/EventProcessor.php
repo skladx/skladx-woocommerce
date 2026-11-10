@@ -7,6 +7,8 @@
 
 namespace SkladX\WooCommerce\Webhooks;
 
+use SkladX\WooCommerce\Inbound\InboundEvents;
+use SkladX\WooCommerce\Inbound\Receipts;
 use SkladX\WooCommerce\Settings;
 use SkladX\WooCommerce\Support\Logger;
 use SkladX\WooCommerce\Sync\OrderMeta;
@@ -70,6 +72,10 @@ final class EventProcessor {
 
 		if ( in_array( $type, array( 'stock.changed', 'product.created', 'product.updated' ), true ) ) {
 			return self::apply_stock( $data, $event_id );
+		}
+
+		if ( InboundEvents::handles( $type ) ) {
+			return Receipts::handle_event( $type, $data );
 		}
 
 		return 'ignored';

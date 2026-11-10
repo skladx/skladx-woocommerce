@@ -30,6 +30,13 @@ final class Tracking {
 	}
 
 	/**
+	 * Public tracking page of a carrier ('' when the carrier has none).
+	 */
+	public static function carrier_url( string $carrier, string $number ): string {
+		return isset( self::CARRIER_URLS[ $carrier ] ) && '' !== $number ? sprintf( self::CARRIER_URLS[ $carrier ], rawurlencode( $number ) ) : '';
+	}
+
+	/**
 	 * @return array{number: string, url: string}|null
 	 */
 	public static function for_order( \WC_Order $order ): ?array {
@@ -42,8 +49,8 @@ final class Tracking {
 		$url     = (string) $order->get_meta( OrderMeta::TRACKING_URL );
 		$carrier = (string) $order->get_meta( OrderMeta::CARRIER );
 
-		if ( '' === $url && isset( self::CARRIER_URLS[ $carrier ] ) ) {
-			$url = sprintf( self::CARRIER_URLS[ $carrier ], rawurlencode( $number ) );
+		if ( '' === $url ) {
+			$url = self::carrier_url( $carrier, $number );
 		}
 
 		/**

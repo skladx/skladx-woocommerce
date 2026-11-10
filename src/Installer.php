@@ -27,6 +27,7 @@ final class Installer {
 		'skladx_process_event',
 		'skladx_poll_events',
 		'skladx_prune_events',
+		'skladx_inbound_refresh',
 	);
 
 	public static function activate(): void {
@@ -37,6 +38,7 @@ final class Installer {
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( 'skladx_poll_events' );
 			as_unschedule_all_actions( 'skladx_prune_events' );
+			as_unschedule_all_actions( 'skladx_inbound_refresh' );
 		}
 	}
 

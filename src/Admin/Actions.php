@@ -67,6 +67,13 @@ final class Actions {
 			} else {
 				Notices::add( __( 'Connection works.', 'skladx-woocommerce' ), 'success' );
 			}
+
+			$inbound_missing = array_diff( array( 'inbound:read', 'inbound:write' ), (array) ( $info['scopes'] ?? array() ) );
+
+			if ( array() !== $inbound_missing ) {
+				/* translators: %s: missing scopes */
+				Notices::add( sprintf( __( 'For SkladX receipts the API key also needs: %s', 'skladx-woocommerce' ), implode( ', ', $inbound_missing ) ), 'info' );
+			}
 		} catch ( ApiException $exception ) {
 			Settings::set(
 				'connection_info',
@@ -89,11 +96,7 @@ final class Actions {
 		$previous = (string) Settings::get( 'webhook_id' );
 
 		try {
-			$webhook = $client->create_webhook(
-				Settings::webhook_url(),
-				Settings::WEBHOOK_EVENTS,
-				sprintf( 'WooCommerce – %s', Settings::site_host() )
-			);
+			$webhook = self::create_webhook( $client );
 
 			if ( empty( $webhook['secret'] ) || empty( $webhook['id'] ) ) {
 				throw new ApiException( __( 'SkladX did not return the webhook secret.', 'skladx-woocommerce' ), 200, 'unexpected_response' );
@@ -118,6 +121,28 @@ final class Actions {
 		}
 
 		self::back_to_settings();
+	}
+
+	/**
+	 * Registers the webhook; when SkladX rejects events it does not know yet
+	 * (older versions without inbound receipts), retries without them.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function create_webhook( Client $client ): array {
+		$description = sprintf( 'WooCommerce – %s', Settings::site_host() );
+
+		try {
+			return $client->create_webhook( Settings::webhook_url(), Settings::WEBHOOK_EVENTS, $description );
+		} catch ( ApiException $exception ) {
+			if ( 422 !== $exception->status ) {
+				throw $exception;
+			}
+
+			Logger::warning( 'Webhook registration with inbound events rejected, retrying without them: ' . $exception->summary() );
+
+			return $client->create_webhook( Settings::webhook_url(), array_values( array_diff( Settings::WEBHOOK_EVENTS, Settings::OPTIONAL_WEBHOOK_EVENTS ) ), $description );
+		}
 	}
 
 	public static function sync_products(): void {

@@ -3,7 +3,7 @@
  * Plugin Name:          SkladX for WooCommerce
  * Plugin URI:           https://github.com/skladx/skladx-woocommerce
  * Description:          Connects WooCommerce with the SkladX fulfilment warehouse: exports orders, syncs products and stock, and receives order status and tracking updates via signed webhooks.
- * Version:              0.2.0
+ * Version:              0.3.0
  * Requires at least:    6.4
  * Requires PHP:         8.1
  * Requires Plugins:     woocommerce
@@ -21,7 +21,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SKLADX_WC_VERSION', '0.2.0' );
+define( 'SKLADX_WC_VERSION', '0.3.0' );
 define( 'SKLADX_WC_FILE', __FILE__ );
 define( 'SKLADX_WC_DIR', __DIR__ );
 

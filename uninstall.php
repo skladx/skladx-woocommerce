@@ -23,7 +23,7 @@ $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LI
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}skladx_events" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 if ( function_exists( 'as_unschedule_all_actions' ) ) {
-	foreach ( array( 'skladx_export_order', 'skladx_sync_product', 'skladx_sync_products_batch', 'skladx_pull_stock', 'skladx_process_event', 'skladx_poll_events', 'skladx_prune_events' ) as $skladx_hook ) {
+	foreach ( array( 'skladx_export_order', 'skladx_sync_product', 'skladx_sync_products_batch', 'skladx_pull_stock', 'skladx_process_event', 'skladx_poll_events', 'skladx_prune_events', 'skladx_inbound_refresh' ) as $skladx_hook ) {
 		as_unschedule_all_actions( $skladx_hook );
 	}
 }
