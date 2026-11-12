@@ -37,7 +37,8 @@ final class OrderPayloadBuilder {
 
 			$items[] = array(
 				'product_id' => (int) $item->get_variation_id() ?: (int) $item->get_product_id(),
-				'sku'        => $product ? (string) $product->get_sku() : '',
+				// Same SKU as the product sync (own SKU or the `WC-{id}` fallback).
+				'sku'        => $product ? ProductSync::sku( $product ) : '',
 				'name'       => (string) $item->get_name(),
 				'quantity'   => (int) $item->get_quantity(),
 				'total'      => (float) $item->get_total() + (float) $item->get_total_tax(),

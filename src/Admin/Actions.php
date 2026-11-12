@@ -150,7 +150,11 @@ final class Actions {
 		self::guard( 'skladx_sync_products' );
 
 		ProductSync::queue_all();
-		Notices::add( __( 'All products with a SKU are being sent to SkladX in the background.', 'skladx-woocommerce' ), 'success' );
+		if ( Settings::fallback_sku_enabled() ) {
+			Notices::add( __( 'All products are being sent to SkladX in the background (products without a SKU as WC-{id}). Progress is shown below.', 'skladx-woocommerce' ), 'success' );
+		} else {
+			Notices::add( __( 'All products with a SKU are being sent to SkladX in the background. Progress is shown below.', 'skladx-woocommerce' ), 'success' );
+		}
 
 		self::back_to_settings();
 	}
@@ -169,11 +173,13 @@ final class Actions {
 			wp_die( esc_html__( 'Product not found.', 'skladx-woocommerce' ), 404 );
 		}
 
-		ProductSync::sync( $product_id, false, true );
+		$result = ProductSync::sync( $product_id, false, true );
 
-		if ( '' === (string) get_post_meta( $product_id, ProductSync::ERROR_META, true ) ) {
+		if ( ProductSync::RESULT_SYNCED === $result ) {
 			/* translators: %s: SKU */
-			Notices::add( sprintf( __( 'Product %s was sent to SkladX.', 'skladx-woocommerce' ), esc_html( (string) $product->get_sku() ) ), 'success' );
+			Notices::add( sprintf( __( 'Product %s was sent to SkladX.', 'skladx-woocommerce' ), esc_html( ProductSync::sku( $product ) ) ), 'success' );
+		} elseif ( ProductSync::RESULT_NO_SKU === $result ) {
+			Notices::add( __( 'The product has no SKU and "Products without SKU" is off in the SkladX settings, so it was not sent.', 'skladx-woocommerce' ), 'warning' );
 		}
 
 		$edit = (string) get_edit_post_link( $product->get_parent_id() ? $product->get_parent_id() : $product_id, 'raw' );

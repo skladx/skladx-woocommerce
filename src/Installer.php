@@ -7,6 +7,7 @@
 
 namespace SkladX\WooCommerce;
 
+use SkladX\WooCommerce\Sync\ProductSync;
 use SkladX\WooCommerce\Webhooks\EventStore;
 
 defined( 'ABSPATH' ) || exit;
@@ -16,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Installer {
 
-	public const DB_VERSION        = '2';
+	public const DB_VERSION        = '3';
 	public const DB_VERSION_OPTION = 'skladx_db_version';
 
 	/** Action Scheduler hooks owned by the plugin. */
@@ -47,10 +48,27 @@ final class Installer {
 	 * Runs on every load; cheap when the schema is current.
 	 */
 	public static function maybe_upgrade(): void {
-		if ( get_option( self::DB_VERSION_OPTION ) !== self::DB_VERSION ) {
+		$installed = (string) get_option( self::DB_VERSION_OPTION, '' );
+
+		if ( $installed !== self::DB_VERSION ) {
 			// Fix the site key of product external ids before the domain can change.
 			Settings::site_key();
 			self::install_schema();
+
+			if ( '' !== $installed && version_compare( $installed, '3', '<' ) ) {
+				// 0.4.1: products without a SKU are sent as WC-{id} — send them once.
+				add_action( 'init', array( self::class, 'queue_sync_of_products_without_sku' ), 20 );
+			}
+		}
+	}
+
+	/**
+	 * Queues "Sync all products" once after the update to 0.4.1 when the
+	 * shop has products without a SKU (they were skipped before).
+	 */
+	public static function queue_sync_of_products_without_sku(): void {
+		if ( function_exists( 'as_enqueue_async_action' ) && Settings::is_configured() && Settings::product_sync_enabled() && Settings::fallback_sku_enabled() && ProductSync::count_without_sku() > 0 ) {
+			ProductSync::queue_all();
 		}
 	}
 

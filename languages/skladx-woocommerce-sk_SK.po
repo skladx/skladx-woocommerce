@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: SkladX for WooCommerce 0.4.0\n"
+"Project-Id-Version: SkladX for WooCommerce 0.4.1\n"
 "Report-Msgid-Bugs-To: https://github.com/skladx/skladx-woocommerce/issues\n"
 "Last-Translator: SkladX\n"
 "Language-Team: Slovak\n"
@@ -1608,3 +1608,73 @@ msgstr "Produkt sa nenašiel."
 #, php-format
 msgid "Product %s was sent to SkladX."
 msgstr "Produkt %s bol odoslaný do SkladX."
+
+#: src/Admin/Actions.php
+msgid "All products are being sent to SkladX in the background (products without a SKU as WC-{id}). Progress is shown below."
+msgstr "Všetky produkty sa na pozadí odosielajú do SkladX (produkty bez SKU ako WC-{id}). Priebeh je zobrazený nižšie."
+
+#: src/Admin/Actions.php
+msgid "All products with a SKU are being sent to SkladX in the background. Progress is shown below."
+msgstr "Všetky produkty so SKU sa na pozadí odosielajú do SkladX. Priebeh je zobrazený nižšie."
+
+#: src/Admin/Actions.php
+msgid "The product has no SKU and \"Products without SKU\" is off in the SkladX settings, so it was not sent."
+msgstr "Produkt nemá SKU a v nastaveniach SkladX je vypnutá voľba „Produkty bez SKU“, preto sa neodoslal."
+
+#: src/Admin/ProductStatus.php
+msgid "Not sent to SkladX: the product (or a variation) has no SKU. Add a SKU, or turn on \"Products without SKU\" in the SkladX settings."
+msgstr "Neodoslané do SkladX: produkt (alebo variant) nemá SKU. Doplňte SKU alebo v nastaveniach SkladX zapnite „Produkty bez SKU“."
+
+#: src/Admin/ProductStatus.php
+msgid "No SKU"
+msgstr "Bez SKU"
+
+#: src/Admin/ProductStatus.php
+msgid "Not synced to SkladX yet"
+msgstr "Zatiaľ nesynchronizované do SkladX"
+
+#: src/Admin/SettingsPage.php
+msgid "Products without SKU"
+msgstr "Produkty bez SKU"
+
+#: src/Admin/SettingsPage.php
+msgid "Send products and variations without a SKU as WC-{id} (e.g. WC-123, the product or variation ID), so every product can be received and labelled in the warehouse. The code never changes; when you add a real SKU later, SkladX renames the same product. Virtual products without a SKU are not sent. When off, products without a SKU are skipped and marked \"No SKU\" in the product list."
+msgstr "Produkty a varianty bez SKU odosielať ako WC-{id} (napr. WC-123, ID produktu alebo variantu), aby sa každý produkt dal v sklade prijať a označiť štítkom. Kód sa nikdy nemení; keď neskôr doplníte skutočné SKU, SkladX premenuje ten istý produkt. Virtuálne produkty bez SKU sa neodosielajú. Keď je voľba vypnutá, produkty bez SKU sa preskočia a v zozname produktov sú označené „Bez SKU“."
+
+#. translators: 1: start date, 2: sent count, 3: failed count, 4: skipped (no SKU) count
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "Sync all products (started %1$s): %2$d sent, %3$d failed, %4$d without SKU skipped."
+msgstr "Synchronizácia všetkých produktov (spustená %1$s): odoslané %2$d, chyba %3$d, bez SKU preskočené %4$d."
+
+#. translators: %s: date
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "Finished %s."
+msgstr "Dokončená %s."
+
+#: src/Admin/SettingsPage.php
+msgid "Still running…"
+msgstr "Stále prebieha…"
+
+#: src/Admin/SettingsPage.php
+msgid "Failed products are marked \"SkladX: error\" in the product list."
+msgstr "Produkty s chybou sú v zozname produktov označené „SkladX: chyba“."
+
+#. translators: %d: number of products
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "%d product or variation has no SKU — unless virtual, it is sent to SkladX as WC-{id}."
+msgid_plural "%d products and variations have no SKU — all but virtual ones are sent to SkladX as WC-{id}."
+msgstr[0] "%d produkt alebo variant nemá SKU – ak nie je virtuálny, odosiela sa do SkladX ako WC-{id}."
+msgstr[1] "%d produkty a varianty nemajú SKU – okrem virtuálnych sa odosielajú do SkladX ako WC-{id}."
+msgstr[2] "%d produktov a variantov nemá SKU – okrem virtuálnych sa odosielajú do SkladX ako WC-{id}."
+
+#. translators: %d: number of products
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "%d product or variation has no SKU and is not sent to SkladX (marked \"No SKU\" in the product list)."
+msgid_plural "%d products and variations have no SKU and are not sent to SkladX (marked \"No SKU\" in the product list)."
+msgstr[0] "%d produkt alebo variant nemá SKU a neodosiela sa do SkladX (v zozname produktov je označený „Bez SKU“)."
+msgstr[1] "%d produkty a varianty nemajú SKU a neodosielajú sa do SkladX (v zozname produktov sú označené „Bez SKU“)."
+msgstr[2] "%d produktov a variantov nemá SKU a neodosiela sa do SkladX (v zozname produktov sú označené „Bez SKU“)."

@@ -69,6 +69,7 @@ final class Settings {
 			'packeta_widget_key'    => '',
 			'cod_gateways'          => array( 'cod' ),
 			'product_sync'          => 'yes',
+			'fallback_sku'          => 'yes',
 			'stock_sync'            => 'no',
 			'status_map'            => array(
 				'handed_over' => 'wc-skladx-shipped',
@@ -78,6 +79,7 @@ final class Settings {
 			'debug'                 => 'no',
 			'events_cursor'         => '',
 			'connection_info'       => array(),
+			'full_sync'             => array(),
 		);
 	}
 
@@ -202,6 +204,13 @@ final class Settings {
 
 	public static function product_sync_enabled(): bool {
 		return 'yes' === self::get( 'product_sync' );
+	}
+
+	/**
+	 * Products without a SKU are sent to SkladX as `WC-{id}` (see ProductSku).
+	 */
+	public static function fallback_sku_enabled(): bool {
+		return 'yes' === self::get( 'fallback_sku' );
 	}
 
 	public static function stock_sync_enabled(): bool {

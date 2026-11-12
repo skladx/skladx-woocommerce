@@ -15,6 +15,22 @@ final class ProductPayloadBuilder {
 
 	public const EAN_META_KEY = '_skladx_ean';
 
+	/**
+	 * Meta keys of EAN/GTIN plugins, read after `_skladx_ean` and the native
+	 * WooCommerce GTIN field (`global_unique_id`, WooCommerce 9.2+). Filter:
+	 * `skladx_ean_meta_keys`.
+	 */
+	public const EAN_PLUGIN_META_KEYS = array(
+		'_ean',              // Common custom field.
+		'_gtin',             // Common custom field.
+		'_alg_ean',          // EAN for WooCommerce (WPFactory).
+		'_wpm_gtin_code',    // Product GTIN (EAN, UPC, ISBN) for WooCommerce.
+		'hwp_product_gtin',  // WooCommerce UPC, EAN, and ISBN — simple products.
+		'hwp_var_gtin',      // WooCommerce UPC, EAN, and ISBN — variations.
+		'_ts_gtin',          // Germanized for WooCommerce.
+		'_woosea_ean',       // Product Feed PRO for WooCommerce.
+	);
+
 	/** Most gallery images sent besides the main image. */
 	public const MAX_IMAGES = 10;
 
@@ -36,22 +52,15 @@ final class ProductPayloadBuilder {
 	);
 
 	/**
-	 * @param \WC_Product $product     Product or variation.
-	 * @param string      $external_id Stable external id (ExternalId::format()).
+	 * @param \WC_Product  $product     Product or variation.
+	 * @param string       $external_id Stable external id (ExternalId::format()).
+	 * @param string|null  $sku         SKU to send (ProductSync::sku()), null for the product's own.
 	 * @return array<string, mixed>
 	 */
-	public static function snapshot( \WC_Product $product, string $external_id = '' ): array {
+	public static function snapshot( \WC_Product $product, string $external_id = '', ?string $sku = null ): array {
 		$parent = $product->get_parent_id() ? wc_get_product( $product->get_parent_id() ) : null;
 		$parent = $parent instanceof \WC_Product ? $parent : null;
-		$ean    = (string) $product->get_meta( self::EAN_META_KEY );
-
-		if ( '' === $ean && is_callable( array( $product, 'get_global_unique_id' ) ) ) {
-			$ean = (string) $product->get_global_unique_id();
-		}
-
-		if ( '' === $ean && null !== $parent ) {
-			$ean = (string) $parent->get_meta( self::EAN_META_KEY );
-		}
+		$ean    = self::ean( $product );
 
 		$image_id    = (int) $product->get_image_id();
 		$gallery_ids = array_map( 'intval', (array) $product->get_gallery_image_ids() );
@@ -68,7 +77,7 @@ final class ProductPayloadBuilder {
 
 		return array(
 			'external_id' => $external_id,
-			'sku'         => (string) $product->get_sku(),
+			'sku'         => $sku ?? (string) $product->get_sku(),
 			'name'        => wp_strip_all_tags( (string) $product->get_name() ),
 			'ean'         => $ean,
 			'weight'      => (string) $product->get_weight(),
@@ -81,6 +90,62 @@ final class ProductPayloadBuilder {
 			'archived'    => 'trash' === $product->get_status() || ( null !== $parent && 'trash' === $parent->get_status() ),
 			'home_url'    => home_url( '/' ),
 		);
+	}
+
+	/**
+	 * EAN of a product or variation: `_skladx_ean`, then the native GTIN field
+	 * (`global_unique_id`), then the meta keys of EAN plugins; a variation
+	 * without any falls back to the `_skladx_ean` of its parent.
+	 *
+	 * @param \WC_Product $product Product or variation.
+	 */
+	public static function ean( \WC_Product $product ): string {
+		$candidates = array( $product->get_meta( self::EAN_META_KEY ) );
+
+		if ( is_callable( array( $product, 'get_global_unique_id' ) ) ) {
+			$candidates[] = $product->get_global_unique_id();
+		}
+
+		foreach ( self::plugin_meta_keys() as $key ) {
+			$candidates[] = $product->get_meta( $key );
+		}
+
+		$ean = self::first_code( $candidates );
+
+		if ( '' === $ean && $product->get_parent_id() ) {
+			$parent = wc_get_product( $product->get_parent_id() );
+			$ean    = $parent instanceof \WC_Product ? self::first_code( array( $parent->get_meta( self::EAN_META_KEY ) ) ) : '';
+		}
+
+		return $ean;
+	}
+
+	/**
+	 * EAN plugin meta keys (after the `skladx_ean_meta_keys` filter).
+	 *
+	 * @return list<string>
+	 */
+	public static function plugin_meta_keys(): array {
+		$keys = function_exists( 'apply_filters' ) ? (array) apply_filters( 'skladx_ean_meta_keys', self::EAN_PLUGIN_META_KEYS ) : self::EAN_PLUGIN_META_KEYS;
+
+		return array_values( array_unique( array_filter( array_map( 'strval', $keys ), static fn ( string $key ): bool => '' !== $key && self::EAN_META_KEY !== $key ) ) );
+	}
+
+	/**
+	 * First non-empty code of the candidates, whitespace removed.
+	 *
+	 * @param array<int, mixed> $candidates Raw meta values.
+	 */
+	public static function first_code( array $candidates ): string {
+		foreach ( $candidates as $candidate ) {
+			$code = is_scalar( $candidate ) ? (string) preg_replace( '/\s+/', '', (string) $candidate ) : '';
+
+			if ( '' !== $code ) {
+				return $code;
+			}
+		}
+
+		return '';
 	}
 
 	/**

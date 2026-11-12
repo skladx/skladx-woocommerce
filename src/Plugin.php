@@ -13,6 +13,7 @@ use SkladX\WooCommerce\Admin\OrderMetaBox;
 use SkladX\WooCommerce\Admin\ProductFields;
 use SkladX\WooCommerce\Admin\ProductStatus;
 use SkladX\WooCommerce\Admin\SettingsPage;
+use SkladX\WooCommerce\Cli\Command as CliCommand;
 use SkladX\WooCommerce\Inbound\Receipts;
 use SkladX\WooCommerce\Pickup\Checkout as PickupCheckout;
 use SkladX\WooCommerce\Sync\AddressWatcher;
@@ -60,6 +61,7 @@ final class Plugin {
 		EventProcessor::register();
 		EventPoller::register();
 		Receipts::register();
+		CliCommand::register();
 
 		if ( is_admin() ) {
 			Notices::register();

@@ -24,7 +24,12 @@ defined( 'ABSPATH' ) || exit;
  * errors, 429 and 5xx are retried in Action Scheduler with backoff. Final
  * errors (409 SKU conflict, 422 validation) are stored on the product and not
  * resent until its payload changes or the admin clicks "Retry sync".
- * "Sync all products" walks the catalogue in batches of BATCH_SIZE.
+ * "Sync all products" (button or `wp skladx sync-products`) walks the whole
+ * catalogue — every status except trash — in batches of BATCH_SIZE.
+ *
+ * Products without their own SKU are sent as `WC-{id}` (see ProductSku and
+ * sku()) unless the fallback SKU setting is off; then they are skipped and
+ * shown as "No SKU" in the product list and counted on the settings page.
  */
 final class ProductSync {
 
@@ -46,6 +51,13 @@ final class ProductSync {
 	/** API error codes that fail again with the same payload (not resent until it changes). */
 	public const FINAL_ERROR_CODES = array( 'sku_conflict', 'validation_failed' );
 
+	/** Results of sync(). */
+	public const RESULT_SYNCED       = 'synced';
+	public const RESULT_UNCHANGED    = 'unchanged';
+	public const RESULT_FAILED       = 'failed';
+	public const RESULT_NO_SKU       = 'no_sku';
+	public const RESULT_NOT_SYNCABLE = 'not_syncable';
+
 	public const LAST_SYNC_META   = '_skladx_product_synced_at';
 	public const ERROR_META       = '_skladx_product_error';
 	public const ERROR_CODE_META  = '_skladx_product_error_code';
@@ -55,6 +67,12 @@ final class ProductSync {
 	public const EXTERNAL_ID_META = '_skladx_external_id';
 	public const REMOTE_ID_META   = '_skladx_product_id';
 	public const STOCK_EVENT      = '_skladx_stock_event_id';
+
+	/** Product statuses synced by "Sync all products" (trash is sent only on trashing). */
+	public const SYNC_STATUSES = array( 'publish', 'private', 'draft', 'pending', 'future' );
+
+	/** Product types that are not goods of their own (variable parents stand for their variations). */
+	public const SKIPPED_TYPES = array( 'variable', 'grouped', 'external' );
 
 	/** True while SkladX data is being written into WooCommerce (prevents echo syncs). */
 	private static bool $applying_remote = false;
@@ -325,8 +343,58 @@ final class ProductSync {
 	 */
 	public static function queue_all(): void {
 		if ( ! as_has_scheduled_action( self::BATCH_HOOK, array( 1 ), self::GROUP ) ) {
+			self::start_full_sync();
 			as_enqueue_async_action( self::BATCH_HOOK, array( 1 ), self::GROUP );
 		}
+	}
+
+	/**
+	 * Resets the counters of a full sync (shown on the settings page).
+	 */
+	public static function start_full_sync(): void {
+		Settings::set(
+			'full_sync',
+			array(
+				'started_at'  => time(),
+				'finished_at' => 0,
+				'counts'      => array(),
+			)
+		);
+	}
+
+	/**
+	 * Product ids of one page of the catalogue for a full sync: simple
+	 * products, variations and other stockable types in every status except
+	 * trash and auto-draft.
+	 *
+	 * @param int $page 1-based page.
+	 * @param int $size Page size.
+	 * @return list<int>
+	 */
+	public static function catalogue_page( int $page, int $size = self::BATCH_SIZE ): array {
+		$types = array_diff( array_merge( array_keys( wc_get_product_types() ), array( 'variation' ) ), self::SKIPPED_TYPES );
+
+		/**
+		 * Filters the product types sent by "Sync all products".
+		 *
+		 * @param list<string> $types Product types (incl. `variation`).
+		 */
+		$types = array_values( (array) apply_filters( 'skladx_sync_product_types', array_values( $types ) ) );
+
+		return array_map(
+			'intval',
+			wc_get_products(
+				array(
+					'type'    => $types,
+					'status'  => self::SYNC_STATUSES,
+					'limit'   => max( 1, $size ),
+					'page'    => max( 1, $page ),
+					'orderby' => 'ID',
+					'order'   => 'ASC',
+					'return'  => 'ids',
+				)
+			)
+		);
 	}
 
 	/**
@@ -335,26 +403,34 @@ final class ProductSync {
 	 * @param int $page 1-based page.
 	 */
 	public static function sync_batch( $page ): void {
-		$ids = wc_get_products(
-			array(
-				'type'    => array( 'simple', 'variation' ),
-				'status'  => array( 'publish', 'private' ),
-				'limit'   => self::BATCH_SIZE,
-				'page'    => max( 1, (int) $page ),
-				'orderby' => 'ID',
-				'order'   => 'ASC',
-				'return'  => 'ids',
-			)
-		);
+		$ids    = self::catalogue_page( (int) $page );
+		$counts = array();
 
 		foreach ( $ids as $id ) {
-			self::sync( (int) $id, false, true );
+			$result            = self::sync( $id, false, true );
+			$counts[ $result ] = ( $counts[ $result ] ?? 0 ) + 1;
 		}
 
-		if ( count( $ids ) === self::BATCH_SIZE ) {
+		$state  = (array) Settings::get( 'full_sync' );
+		$totals = (array) ( $state['counts'] ?? array() );
+
+		foreach ( $counts as $result => $count ) {
+			$totals[ $result ] = (int) ( $totals[ $result ] ?? 0 ) + $count;
+		}
+
+		$state['counts'] = $totals;
+		$last            = count( $ids ) < self::BATCH_SIZE;
+
+		if ( $last ) {
+			$state['finished_at'] = time();
+		}
+
+		Settings::set( 'full_sync', $state );
+
+		if ( ! $last ) {
 			as_enqueue_async_action( self::BATCH_HOOK, array( (int) $page + 1 ), self::GROUP );
 		} else {
-			Logger::info( 'Full product sync finished.' );
+			Logger::info( 'Full product sync finished: ' . wp_json_encode( $totals ) );
 		}
 	}
 
@@ -371,18 +447,19 @@ final class ProductSync {
 	 * @param bool     $force      Send even when nothing relevant changed.
 	 * @param int      $attempt    Retry number (0 = first try).
 	 * @param int|null $timeout    HTTP timeout, null for the default.
+	 * @return string One of the RESULT_* constants.
 	 */
-	public static function sync( $product_id, $notify = true, $force = false, $attempt = 0, $timeout = null ): void {
+	public static function sync( $product_id, $notify = true, $force = false, $attempt = 0, $timeout = null ): string {
 		$product = wc_get_product( (int) $product_id );
 
 		if ( ! self::is_syncable( $product ) ) {
-			return;
+			return self::RESULT_NOT_SYNCABLE;
 		}
 
-		if ( '' === (string) $product->get_sku() ) {
-			Logger::debug( sprintf( 'Product %d skipped: no SKU.', $product->get_id() ) );
+		if ( '' === self::sku( $product ) ) {
+			Logger::info( sprintf( 'Product %d (%s) not sent to SkladX: no SKU and the fallback SKU is off.', $product->get_id(), wp_strip_all_tags( (string) $product->get_name() ) ) );
 
-			return;
+			return self::RESULT_NO_SKU;
 		}
 
 		unset( self::$pending[ (int) $product->get_id() ] );
@@ -394,7 +471,7 @@ final class ProductSync {
 			$hash    = self::hash( $payload );
 
 			if ( ! $force && ! self::needs_send( $product, $payload ) ) {
-				return;
+				return self::RESULT_UNCHANGED;
 			}
 
 			$remote = Client::from_settings( null !== $timeout ? (int) $timeout : null )->upsert_product( $payload );
@@ -415,8 +492,12 @@ final class ProductSync {
 			}
 
 			Logger::info( sprintf( 'Product %s (%s) synced (%s).', $payload['sku'], (string) ( $payload['external_id'] ?? '' ), (string) ( $remote['id'] ?? '?' ) ) );
+
+			return self::RESULT_SYNCED;
 		} catch ( MappingException | ApiException $exception ) {
 			self::failed( $product, $exception, $hash, (bool) $notify, (int) $attempt );
+
+			return self::RESULT_FAILED;
 		}
 	}
 
@@ -452,7 +533,7 @@ final class ProductSync {
 		}
 
 		self::write_meta( $product, $set, $final ? array() : array( self::FAILED_HASH_META ) );
-		Logger::error( sprintf( 'Product %s sync failed: %s', $product->get_sku(), $message ) );
+		Logger::error( sprintf( 'Product %s sync failed: %s', self::sku( $product ), $message ) );
 
 		if ( null !== $api && $api->is_retryable() && $attempt < count( self::BACKOFF ) ) {
 			$args = array( (int) $product->get_id(), $attempt + 1 );
@@ -469,7 +550,7 @@ final class ProductSync {
 				sprintf(
 					/* translators: 1: SKU, 2: error */
 					__( 'Product %1$s could not be synced to SkladX: %2$s', 'skladx-woocommerce' ),
-					esc_html( (string) $product->get_sku() ),
+					esc_html( self::sku( $product ) ),
 					esc_html( $message )
 				)
 			);
@@ -477,17 +558,128 @@ final class ProductSync {
 	}
 
 	/**
-	 * Simple products and variations with a SKU, not auto-drafts.
+	 * Simple products, variations and other stockable types, not auto-drafts.
 	 *
 	 * @param mixed $product Product.
 	 * @phpstan-assert-if-true \WC_Product $product
 	 */
 	public static function is_syncable( $product ): bool {
 		return $product instanceof \WC_Product
-			&& ! $product->is_type( 'variable' )
-			&& ! $product->is_type( 'grouped' )
-			&& ! $product->is_type( 'external' )
+			&& ! $product->is_type( self::SKIPPED_TYPES )
 			&& 'auto-draft' !== $product->get_status();
+	}
+
+	/**
+	 * SKU of a product in SkladX ('' when it cannot be sent).
+	 *
+	 * The product's own SKU; without one, the fallback `WC-{id}` (setting
+	 * "Products without SKU", on by default) for physical products with an
+	 * external id. Exceptions keep the SKU SkladX already knows:
+	 *
+	 * - A variation without its own SKU that was already synced under the
+	 *   SKU inherited from its parent (plugin < 0.4.1) keeps that SKU.
+	 * - With the fallback off, or for virtual products, the WooCommerce SKU
+	 *   is used as before (variations inherit the parent SKU).
+	 *
+	 * Order items, stock updates and receipts use the same SKU.
+	 */
+	public static function sku( \WC_Product $product ): string {
+		$own = trim( (string) $product->get_sku( 'edit' ) );
+
+		if ( '' !== $own ) {
+			return $own;
+		}
+
+		$inherited = trim( (string) $product->get_sku() );
+
+		if ( ! self::uses_fallback_sku( $product ) ) {
+			return $inherited;
+		}
+
+		if ( '' !== $inherited && $inherited === (string) $product->get_meta( self::SKU_META ) && '' === (string) $product->get_meta( self::ERROR_META ) ) {
+			return $inherited;
+		}
+
+		/**
+		 * Filters the fallback SKU of a product without a SKU. It must stay the
+		 * same for the product forever (default `WC-{id}`).
+		 *
+		 * @param string      $sku     Fallback SKU.
+		 * @param \WC_Product $product Product or variation.
+		 */
+		return trim( (string) apply_filters( 'skladx_fallback_sku', ProductSku::fallback( (int) $product->get_id() ), $product ) );
+	}
+
+	/**
+	 * Whether a product without its own SKU gets the fallback SKU.
+	 */
+	public static function uses_fallback_sku( \WC_Product $product ): bool {
+		return Settings::fallback_sku_enabled()
+			&& '' === trim( (string) $product->get_sku( 'edit' ) )
+			&& ! $product->is_virtual()
+			&& '' !== self::external_id( $product );
+	}
+
+	/**
+	 * Number of products and variations without their own SKU (every status
+	 * except trash; variable, grouped and external parents not counted).
+	 */
+	public static function count_without_sku(): int {
+		global $wpdb;
+
+		$skipped  = self::SKIPPED_TYPES;
+		$statuses = self::SYNC_STATUSES;
+		$params   = array_merge( $statuses, $skipped );
+		$status_p = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		$type_p   = implode( ',', array_fill( 0, count( $skipped ), '%s' ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery -- placeholders built above, admin-only count.
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} p
+				LEFT JOIN {$wpdb->postmeta} sku ON sku.post_id = p.ID AND sku.meta_key = '_sku'
+				WHERE p.post_type IN ('product', 'product_variation')
+				AND p.post_status IN ($status_p)
+				AND ( sku.meta_value IS NULL OR sku.meta_value = '' )
+				AND NOT EXISTS (
+					SELECT 1 FROM {$wpdb->term_relationships} tr
+					JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_type'
+					JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+					WHERE tr.object_id = p.ID AND t.slug IN ($type_p)
+				)",
+				$params
+			)
+		);
+		// phpcs:enable
+	}
+
+	/**
+	 * Product id of a SkladX SKU: the WooCommerce SKU, or a fallback SKU of a
+	 * product that still has no SKU of its own (0 when not found).
+	 *
+	 * @param string $sku SKU.
+	 */
+	public static function product_id_by_sku( string $sku ): int {
+		$sku = trim( $sku );
+
+		if ( '' === $sku ) {
+			return 0;
+		}
+
+		$product_id = (int) wc_get_product_id_by_sku( $sku );
+
+		if ( $product_id ) {
+			return $product_id;
+		}
+
+		$fallback_id = ProductSku::fallback_id( $sku );
+		$product     = null !== $fallback_id ? wc_get_product( $fallback_id ) : null;
+
+		if ( $product instanceof \WC_Product && 0 === strcasecmp( self::sku( $product ), $sku ) ) {
+			return (int) $product->get_id();
+		}
+
+		return 0;
 	}
 
 	/**
@@ -502,7 +694,7 @@ final class ProductSync {
 	 * @param array<string, mixed>|null $payload Payload, built when null.
 	 */
 	public static function needs_send( \WC_Product $product, ?array $payload = null ): bool {
-		if ( '' === (string) $product->get_sku() ) {
+		if ( '' === self::sku( $product ) ) {
 			return false;
 		}
 
@@ -535,7 +727,7 @@ final class ProductSync {
 	 */
 	public static function payload( \WC_Product $product ): array {
 		$payload = ProductPayloadBuilder::build(
-			ProductPayloadBuilder::snapshot( $product, self::external_id( $product ) ),
+			ProductPayloadBuilder::snapshot( $product, self::external_id( $product ), self::sku( $product ) ),
 			(string) get_option( 'woocommerce_weight_unit', 'kg' ),
 			(string) get_option( 'woocommerce_dimension_unit', 'cm' ),
 			get_woocommerce_currency()
@@ -575,7 +767,7 @@ final class ProductSync {
 	 * @return bool Whether the stock changed.
 	 */
 	public static function apply_stock( string $sku, int $available, string $event_id = '' ): bool {
-		$product_id = (int) wc_get_product_id_by_sku( $sku );
+		$product_id = self::product_id_by_sku( $sku );
 		$product    = $product_id ? wc_get_product( $product_id ) : null;
 
 		if ( ! $product instanceof \WC_Product || ! $product->managing_stock() ) {

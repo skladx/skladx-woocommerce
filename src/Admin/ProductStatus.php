@@ -119,9 +119,29 @@ final class ProductStatus {
 
 		if ( $synced ) {
 			printf( '<span class="skladx-badge skladx-badge--ok" title="%1$s">%2$s</span>', esc_attr__( 'Synced to SkladX', 'skladx-woocommerce' ), esc_html__( 'OK', 'skladx-woocommerce' ) );
+		} elseif ( self::has_skipped( $ids, $product ) ) {
+			printf( '<span class="skladx-badge skladx-badge--warning" title="%1$s">%2$s</span>', esc_attr__( 'Not sent to SkladX: the product (or a variation) has no SKU. Add a SKU, or turn on "Products without SKU" in the SkladX settings.', 'skladx-woocommerce' ), esc_html__( 'No SKU', 'skladx-woocommerce' ) );
 		} else {
-			printf( '<span class="skladx-badge" title="%1$s">&ndash;</span>', esc_attr__( 'Not synced to SkladX yet (products without SKU are skipped)', 'skladx-woocommerce' ) );
+			printf( '<span class="skladx-badge" title="%1$s">&ndash;</span>', esc_attr__( 'Not synced to SkladX yet', 'skladx-woocommerce' ) );
 		}
+	}
+
+	/**
+	 * Whether any of the products cannot be sent for lack of a SKU.
+	 *
+	 * @param list<int>   $ids     Product or variation ids.
+	 * @param \WC_Product $product The listed product.
+	 */
+	private static function has_skipped( array $ids, \WC_Product $product ): bool {
+		foreach ( $ids as $id ) {
+			$item = $id === (int) $product->get_id() ? $product : wc_get_product( $id );
+
+			if ( ProductSync::is_syncable( $item ) && '' === ProductSync::sku( $item ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public static function column_style(): void {
@@ -131,7 +151,7 @@ final class ProductStatus {
 			return;
 		}
 
-		echo '<style>.column-skladx{width:7em}.skladx-badge{display:inline-block;padding:0 6px;border-radius:3px;line-height:1.8;font-size:12px;color:#50575e}.skladx-badge--error{background:#d63638;color:#fff}.skladx-badge--error:hover,.skladx-badge--error:focus{color:#fff}.skladx-badge--ok{background:#edfaef;color:#00a32a}</style>';
+		echo '<style>.column-skladx{width:7em}.skladx-badge{display:inline-block;padding:0 6px;border-radius:3px;line-height:1.8;font-size:12px;color:#50575e}.skladx-badge--error{background:#d63638;color:#fff}.skladx-badge--error:hover,.skladx-badge--error:focus{color:#fff}.skladx-badge--ok{background:#edfaef;color:#00a32a}.skladx-badge--warning{background:#fcf9e8;color:#996800}</style>';
 	}
 
 	/**
@@ -147,9 +167,11 @@ final class ProductStatus {
 			$message = (string) get_post_meta( $id, ProductSync::ERROR_META, true );
 
 			if ( '' !== $message ) {
+				$variation = $id === (int) $product->get_id() ? $product : wc_get_product( $id );
+
 				$errors[] = array(
 					'id'      => $id,
-					'sku'     => (string) get_post_meta( $id, '_sku', true ),
+					'sku'     => $variation instanceof \WC_Product ? ProductSync::sku( $variation ) : '',
 					'message' => $message,
 				);
 			}

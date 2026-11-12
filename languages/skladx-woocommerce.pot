@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: SkladX for WooCommerce 0.4.0\n"
+"Project-Id-Version: SkladX for WooCommerce 0.4.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/skladx-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1606,3 +1606,71 @@ msgstr ""
 #, php-format
 msgid "Product %s was sent to SkladX."
 msgstr ""
+
+#: src/Admin/Actions.php
+msgid "All products are being sent to SkladX in the background (products without a SKU as WC-{id}). Progress is shown below."
+msgstr ""
+
+#: src/Admin/Actions.php
+msgid "All products with a SKU are being sent to SkladX in the background. Progress is shown below."
+msgstr ""
+
+#: src/Admin/Actions.php
+msgid "The product has no SKU and \"Products without SKU\" is off in the SkladX settings, so it was not sent."
+msgstr ""
+
+#: src/Admin/ProductStatus.php
+msgid "Not sent to SkladX: the product (or a variation) has no SKU. Add a SKU, or turn on \"Products without SKU\" in the SkladX settings."
+msgstr ""
+
+#: src/Admin/ProductStatus.php
+msgid "No SKU"
+msgstr ""
+
+#: src/Admin/ProductStatus.php
+msgid "Not synced to SkladX yet"
+msgstr ""
+
+#: src/Admin/SettingsPage.php
+msgid "Products without SKU"
+msgstr ""
+
+#: src/Admin/SettingsPage.php
+msgid "Send products and variations without a SKU as WC-{id} (e.g. WC-123, the product or variation ID), so every product can be received and labelled in the warehouse. The code never changes; when you add a real SKU later, SkladX renames the same product. Virtual products without a SKU are not sent. When off, products without a SKU are skipped and marked \"No SKU\" in the product list."
+msgstr ""
+
+#. translators: 1: start date, 2: sent count, 3: failed count, 4: skipped (no SKU) count
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "Sync all products (started %1$s): %2$d sent, %3$d failed, %4$d without SKU skipped."
+msgstr ""
+
+#. translators: %s: date
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "Finished %s."
+msgstr ""
+
+#: src/Admin/SettingsPage.php
+msgid "Still running…"
+msgstr ""
+
+#: src/Admin/SettingsPage.php
+msgid "Failed products are marked \"SkladX: error\" in the product list."
+msgstr ""
+
+#. translators: %d: number of products
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "%d product or variation has no SKU — unless virtual, it is sent to SkladX as WC-{id}."
+msgid_plural "%d products and variations have no SKU — all but virtual ones are sent to SkladX as WC-{id}."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of products
+#: src/Admin/SettingsPage.php
+#, php-format
+msgid "%d product or variation has no SKU and is not sent to SkladX (marked \"No SKU\" in the product list)."
+msgid_plural "%d products and variations have no SKU and are not sent to SkladX (marked \"No SKU\" in the product list)."
+msgstr[0] ""
+msgstr[1] ""

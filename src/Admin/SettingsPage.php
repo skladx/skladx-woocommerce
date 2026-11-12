@@ -9,6 +9,7 @@ namespace SkladX\WooCommerce\Admin;
 
 use SkladX\WooCommerce\Settings;
 use SkladX\WooCommerce\Support\Redactor;
+use SkladX\WooCommerce\Sync\ProductSync;
 use SkladX\WooCommerce\Sync\StatusMapper;
 use SkladX\WooCommerce\Webhooks\EventStore;
 
@@ -175,6 +176,13 @@ final class SettingsPage extends \WC_Settings_Page {
 				'id'      => 'skladx_product_sync',
 				'title'   => __( 'Product sync', 'skladx-woocommerce' ),
 				'desc'    => __( 'Send products (SKU, name, EAN, weight, dimensions, price) to SkladX when they are saved.', 'skladx-woocommerce' ),
+				'default' => 'yes',
+			),
+			array(
+				'type'    => 'checkbox',
+				'id'      => 'skladx_fallback_sku',
+				'title'   => __( 'Products without SKU', 'skladx-woocommerce' ),
+				'desc'    => __( 'Send products and variations without a SKU as WC-{id} (e.g. WC-123, the product or variation ID), so every product can be received and labelled in the warehouse. The code never changes; when you add a real SKU later, SkladX renames the same product. Virtual products without a SKU are not sent. When off, products without a SKU are skipped and marked "No SKU" in the product list.', 'skladx-woocommerce' ),
 				'default' => 'yes',
 			),
 			array(
@@ -527,6 +535,7 @@ final class SettingsPage extends \WC_Settings_Page {
 					<a class="button" href="<?php echo esc_url( Actions::url( 'skladx_pull_stock' ) ); ?>"><?php esc_html_e( 'Take over stock from SkladX now', 'skladx-woocommerce' ); ?></a>
 				<?php endif; ?>
 				<a class="button" href="<?php echo esc_url( Actions::url( 'skladx_poll_events' ) ); ?>"><?php esc_html_e( 'Fetch missed events now', 'skladx-woocommerce' ); ?></a>
+				<?php $this->render_product_sync_status(); ?>
 				<p class="description">
 					<?php
 					printf(
@@ -542,5 +551,55 @@ final class SettingsPage extends \WC_Settings_Page {
 			</td>
 		</tr>
 		<?php
+	}
+
+	/**
+	 * Progress of the last "Sync all products" and products without a SKU.
+	 */
+	private function render_product_sync_status(): void {
+		$state   = (array) Settings::get( 'full_sync' );
+		$counts  = (array) ( $state['counts'] ?? array() );
+		$started = (int) ( $state['started_at'] ?? 0 );
+		$no_sku  = ProductSync::count_without_sku();
+
+		if ( $started > 0 ) {
+			$finished = (int) ( $state['finished_at'] ?? 0 );
+			$date     = static fn ( int $time ): string => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $time );
+
+			echo '<p class="description">';
+			printf(
+				/* translators: 1: start date, 2: sent count, 3: failed count, 4: skipped (no SKU) count */
+				esc_html__( 'Sync all products (started %1$s): %2$d sent, %3$d failed, %4$d without SKU skipped.', 'skladx-woocommerce' ),
+				esc_html( $date( $started ) ),
+				(int) ( $counts[ ProductSync::RESULT_SYNCED ] ?? 0 ),
+				(int) ( $counts[ ProductSync::RESULT_FAILED ] ?? 0 ),
+				(int) ( $counts[ ProductSync::RESULT_NO_SKU ] ?? 0 )
+			);
+			echo ' ';
+			if ( $finished > 0 ) {
+				/* translators: %s: date */
+				printf( esc_html__( 'Finished %s.', 'skladx-woocommerce' ), esc_html( $date( $finished ) ) );
+			} else {
+				esc_html_e( 'Still running…', 'skladx-woocommerce' );
+			}
+
+			if ( (int) ( $counts[ ProductSync::RESULT_FAILED ] ?? 0 ) > 0 ) {
+				echo ' ';
+				esc_html_e( 'Failed products are marked "SkladX: error" in the product list.', 'skladx-woocommerce' );
+			}
+			echo '</p>';
+		}
+
+		if ( $no_sku > 0 ) {
+			echo '<p class="description">';
+			if ( Settings::fallback_sku_enabled() ) {
+				/* translators: %d: number of products */
+				printf( esc_html( _n( '%d product or variation has no SKU — unless virtual, it is sent to SkladX as WC-{id}.', '%d products and variations have no SKU — all but virtual ones are sent to SkladX as WC-{id}.', $no_sku, 'skladx-woocommerce' ) ), (int) $no_sku );
+			} else {
+				/* translators: %d: number of products */
+				printf( esc_html( _n( '%d product or variation has no SKU and is not sent to SkladX (marked "No SKU" in the product list).', '%d products and variations have no SKU and are not sent to SkladX (marked "No SKU" in the product list).', $no_sku, 'skladx-woocommerce' ) ), (int) $no_sku );
+			}
+			echo '</p>';
+		}
 	}
 }

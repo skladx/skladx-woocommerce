@@ -13,7 +13,8 @@ use SkladX\WooCommerce\Sync\ProductSync;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Only products with a SKU can be received (SkladX matches by SKU).
+ * Only products with a SkladX SKU can be received (SkladX matches by SKU):
+ * the own SKU or the `WC-{id}` fallback (ProductSync::sku()).
  * Variable and grouped parents are skipped — their variations are listed.
  */
 final class ProductLookup {
@@ -81,7 +82,7 @@ final class ProductLookup {
 		$found = array();
 
 		foreach ( array_unique( array_filter( array_map( 'strval', $skus ) ) ) as $sku ) {
-			$id      = (int) wc_get_product_id_by_sku( $sku );
+			$id      = ProductSync::product_id_by_sku( $sku );
 			$product = $id ? wc_get_product( $id ) : null;
 			$info    = $product instanceof \WC_Product ? self::info( $product ) : null;
 
@@ -100,7 +101,7 @@ final class ProductLookup {
 	 * @return array<string, mixed>|null
 	 */
 	public static function info( \WC_Product $product ): ?array {
-		$sku = (string) $product->get_sku();
+		$sku = ProductSync::sku( $product );
 
 		if ( '' === $sku || $product->is_type( 'variable' ) || $product->is_type( 'grouped' ) || $product->is_type( 'external' ) || 'trash' === $product->get_status() ) {
 			return null;
@@ -125,7 +126,7 @@ final class ProductLookup {
 			return 0;
 		}
 
-		$id = (int) wc_get_product_id_by_sku( $code );
+		$id = ProductSync::product_id_by_sku( $code );
 
 		if ( $id ) {
 			return $id;
@@ -139,6 +140,15 @@ final class ProductLookup {
 			}
 		}
 
+		$ean_query = array( 'relation' => 'OR' );
+
+		foreach ( array_merge( array( ProductPayloadBuilder::EAN_META_KEY ), ProductPayloadBuilder::plugin_meta_keys() ) as $key ) {
+			$ean_query[] = array(
+				'key'   => $key,
+				'value' => $code,
+			);
+		}
+
 		$posts = get_posts(
 			array(
 				'post_type'      => array( 'product', 'product_variation' ),
@@ -146,13 +156,8 @@ final class ProductLookup {
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- exact match on a single meta key, admin only.
-				'meta_query'     => array(
-					array(
-						'key'   => ProductPayloadBuilder::EAN_META_KEY,
-						'value' => $code,
-					),
-				),
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- exact match on a few EAN meta keys, admin only.
+				'meta_query'     => $ean_query,
 			)
 		);
 
@@ -160,12 +165,6 @@ final class ProductLookup {
 	}
 
 	private static function ean( \WC_Product $product ): string {
-		$ean = (string) $product->get_meta( ProductPayloadBuilder::EAN_META_KEY );
-
-		if ( '' === $ean && is_callable( array( $product, 'get_global_unique_id' ) ) ) {
-			$ean = (string) $product->get_global_unique_id();
-		}
-
-		return $ean;
+		return ProductPayloadBuilder::ean( $product );
 	}
 }
