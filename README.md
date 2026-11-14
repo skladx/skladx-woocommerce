@@ -198,6 +198,10 @@ Zmaže nastavenia `skladx_*` okrem `skladx_site_key` (súčasť `external_id` pr
 
 ## Changelog
 
+### Unreleased
+
+- *Periodic product check* (on by default, every hour / 6 h / 12 h / day / week, default daily): Action Scheduler walks the catalogue without force and sends only products SkladX does not have yet or that changed — catches imports that skip WooCommerce hooks and failed pushes, so the warehouse can receive new goods a client brings without a receipt. The last run is shown under *Tools*.
+
 ### 0.4.1
 
 - Products and variations without a SKU are no longer skipped: they are sent as the stable fallback SKU `WC-{id}` (setting *Products without SKU*, on by default; not for virtual products). Adding a real SKU later renames the same SkladX product via `external_id`. Orders, stock updates and receipts use the same code.

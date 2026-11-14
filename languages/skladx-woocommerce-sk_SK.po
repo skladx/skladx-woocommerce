@@ -1678,3 +1678,33 @@ msgid_plural "%d products and variations have no SKU and are not sent to SkladX 
 msgstr[0] "%d produkt alebo variant nemá SKU a neodosiela sa do SkladX (v zozname produktov je označený „Bez SKU“)."
 msgstr[1] "%d produkty a varianty nemajú SKU a neodosielajú sa do SkladX (v zozname produktov sú označené „Bez SKU“)."
 msgstr[2] "%d produktov a variantov nemá SKU a neodosiela sa do SkladX (v zozname produktov sú označené „Bez SKU“)."
+
+msgid "Periodic product check"
+msgstr "Pravidelná kontrola produktov"
+
+msgid "Regularly walk the whole catalogue and send products SkladX does not have yet or that changed (e.g. added by an import that skips WooCommerce hooks, or whose push failed). New products the client brings to the warehouse without a receipt can then be received right away. Unchanged products cost no request."
+msgstr "Pravidelne prejde celý katalóg a odošle produkty, ktoré SkladX ešte nemá alebo sa zmenili (napr. pridané importom, ktorý obchádza WooCommerce, alebo ktorých odoslanie zlyhalo). Nové produkty, ktoré klient privezie na sklad bez príjemky, potom sklad hneď prijme. Nezmenené produkty sa neposielajú."
+
+msgid "Check every"
+msgstr "Kontrolovať každú"
+
+msgid "hour"
+msgstr "hodinu"
+
+msgid "6 hours"
+msgstr "6 hodín"
+
+msgid "12 hours"
+msgstr "12 hodín"
+
+msgid "day"
+msgstr "deň"
+
+msgid "week"
+msgstr "týždeň"
+
+msgid "How often the periodic product check runs (Action Scheduler / WP-Cron)."
+msgstr "Ako často beží pravidelná kontrola produktov (Action Scheduler / WP-Cron)."
+
+msgid "Last periodic product check (%1$s): %2$d new or changed products sent, %3$d failed."
+msgstr "Posledná pravidelná kontrola produktov (%1$s): odoslaných %2$d nových alebo zmenených produktov, %3$d zlyhalo."

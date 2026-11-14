@@ -187,6 +187,27 @@ final class SettingsPage extends \WC_Settings_Page {
 			),
 			array(
 				'type'    => 'checkbox',
+				'id'      => 'skladx_product_check',
+				'title'   => __( 'Periodic product check', 'skladx-woocommerce' ),
+				'desc'    => __( 'Regularly walk the whole catalogue and send products SkladX does not have yet or that changed (e.g. added by an import that skips WooCommerce hooks, or whose push failed). New products the client brings to the warehouse without a receipt can then be received right away. Unchanged products cost no request.', 'skladx-woocommerce' ),
+				'default' => 'yes',
+			),
+			array(
+				'type'     => 'select',
+				'id'       => 'skladx_product_check_interval',
+				'title'    => __( 'Check every', 'skladx-woocommerce' ),
+				'default'  => '24',
+				'options'  => array(
+					'1'   => __( 'hour', 'skladx-woocommerce' ),
+					'6'   => __( '6 hours', 'skladx-woocommerce' ),
+					'12'  => __( '12 hours', 'skladx-woocommerce' ),
+					'24'  => __( 'day', 'skladx-woocommerce' ),
+					'168' => __( 'week', 'skladx-woocommerce' ),
+				),
+				'desc_tip' => __( 'How often the periodic product check runs (Action Scheduler / WP-Cron).', 'skladx-woocommerce' ),
+			),
+			array(
+				'type'    => 'checkbox',
 				'id'      => 'skladx_stock_sync',
 				'title'   => __( 'Stock sync', 'skladx-woocommerce' ),
 				'desc'    => __( 'Set WooCommerce stock to the quantity available in the SkladX warehouse (on hand minus reserved; SkladX is the source of truth). Units of orders not yet sent to SkladX stay deducted. Only products with "Manage stock" enabled are updated. Turning it on takes over all stock levels once.', 'skladx-woocommerce' ),
@@ -587,6 +608,23 @@ final class SettingsPage extends \WC_Settings_Page {
 				echo ' ';
 				esc_html_e( 'Failed products are marked "SkladX: error" in the product list.', 'skladx-woocommerce' );
 			}
+			echo '</p>';
+		}
+
+		$check = (array) Settings::get( 'product_check_state' );
+
+		if ( (int) ( $check['started_at'] ?? 0 ) > 0 ) {
+			$date   = static fn ( int $time ): string => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $time );
+			$counts = (array) ( $check['counts'] ?? array() );
+
+			echo '<p class="description">';
+			printf(
+				/* translators: 1: start date, 2: sent count, 3: failed count */
+				esc_html__( 'Last periodic product check (%1$s): %2$d new or changed products sent, %3$d failed.', 'skladx-woocommerce' ),
+				esc_html( $date( (int) $check['started_at'] ) ),
+				(int) ( $counts[ ProductSync::RESULT_SYNCED ] ?? 0 ),
+				(int) ( $counts[ ProductSync::RESULT_FAILED ] ?? 0 )
+			);
 			echo '</p>';
 		}
 

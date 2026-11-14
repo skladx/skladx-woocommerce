@@ -41,6 +41,8 @@ final class Installer {
 			as_unschedule_all_actions( 'skladx_poll_events' );
 			as_unschedule_all_actions( 'skladx_prune_events' );
 			as_unschedule_all_actions( 'skladx_inbound_refresh' );
+			as_unschedule_all_actions( 'skladx_product_check' );
+			as_unschedule_all_actions( 'skladx_product_check_batch' );
 		}
 	}
 

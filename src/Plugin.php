@@ -18,6 +18,7 @@ use SkladX\WooCommerce\Inbound\Receipts;
 use SkladX\WooCommerce\Pickup\Checkout as PickupCheckout;
 use SkladX\WooCommerce\Sync\AddressWatcher;
 use SkladX\WooCommerce\Sync\OrderExporter;
+use SkladX\WooCommerce\Sync\ProductCheck;
 use SkladX\WooCommerce\Sync\ProductSync;
 use SkladX\WooCommerce\Sync\Tracking;
 use SkladX\WooCommerce\Webhooks\EventPoller;
@@ -54,6 +55,7 @@ final class Plugin {
 
 		OrderExporter::register();
 		ProductSync::register();
+		ProductCheck::register();
 		Tracking::register();
 		AddressWatcher::register();
 		PickupCheckout::register();
